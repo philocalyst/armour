@@ -1,0 +1,7 @@
+[package]
+name = "lua"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+mlua                = { version = "0.10.5", features = [ "anyhow", "async", "error-send", "lua54", "macros", "serialize" ] }
