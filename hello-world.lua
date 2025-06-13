@@ -1,7 +1,7 @@
 local M = {}
 
 function M:build_badge(inputs)
-  print(inputs.url)
+  return { { "hi" } }
 end
 
 return M

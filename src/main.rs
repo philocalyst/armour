@@ -47,6 +47,8 @@ fn main() {
     // Get the lua module that we're going to be using..
     let source: Table = lua.load(lua_file).eval().unwrap();
 
-    // Call the only method we care about
-    source.call_method::<()>("build_badge", job).unwrap();
+    // Call the only method we care about, which returns a table representing the key values found
+    let output = source.call_method::<Table>("build_badge", job).unwrap();
+
+    debug_print(&lua, output).unwrap();
 }
