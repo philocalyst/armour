@@ -36,9 +36,29 @@ fn get_color_presets() -> HashMap<&'static str, &'static str> {
 }
 
 // Placeholder for text width calculation
-fn calc_width(text: &str) -> i32 {
-    // TODO: IMPLEMENT THIS USING AB GLYPH
-    text.len() as i32 * 70 // Rough approximation
+fn calc_width(text: &str) -> f32 {
+    use ab_glyph;
+
+    let font = FontRef::try_from_slice(include_bytes!(
+        "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
+    ))
+    .unwrap();
+
+    // Get the total width of the entire string
+    // We don't need to worry about newlines here because they
+    // SHOULDNT EXIST
+    text.chars()
+        .into_iter()
+        .map(|c| {
+            // TODO: Allow font size to be configurable
+            let glyph = font.glyph_id(c).with_scale(30.0);
+
+            // Getting the outline of the precise glyph rather than just its bounding box
+            let outline = font.outline_glyph(glyph).unwrap();
+
+            outline.px_bounds().width()
+        })
+        .sum()
 }
 
 fn generate_random_id(length: usize) -> String {
