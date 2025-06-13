@@ -37,6 +37,7 @@ fn get_color_presets() -> HashMap<&'static str, &'static str> {
 
 // Placeholder for text width calculation
 fn calc_width(text: &str) -> i32 {
+    // TODO: IMPLEMENT THIS USING AB GLYPH
     text.len() as i32 * 70 // Rough approximation
 }
 
@@ -119,6 +120,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
     let sanitized_label = label.as_ref().map(|l| l).unwrap();
     let sanitized_status = &options.status;
 
+    // Create boilerplate svg shell
     let mut document = Document::new()
         .set("width", scale * width as f64 / 10.0)
         .set("height", scale * 20.0)
@@ -348,6 +350,7 @@ pub fn bare(options: BadgenOptions) -> Result<Document, &'static str> {
 
     let sanitized_status = &options.status;
 
+    // Create boilerplate svg shell
     let mut document = Document::new()
         .set("width", scale * st_rect_width as f64 / 10.0)
         .set("height", scale * 20.0)
