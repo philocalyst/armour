@@ -1,0 +1,493 @@
+use std::collections::HashMap;
+use svg::Document;
+use svg::node::Text as TextNode;
+use svg::node::element::{
+    Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
+};
+
+#[derive(Clone)]
+pub enum StyleOption {
+    Flat,
+    Classic,
+}
+
+pub struct BadgenOptions {
+    pub status: String,
+    pub subject: Option<String>,
+    pub color: Option<String>,
+    pub label: Option<String>,
+    pub label_color: Option<String>,
+    pub style: Option<StyleOption>,
+    pub icon: Option<String>,
+    pub icon_width: Option<i32>,
+    pub scale: Option<f64>,
+}
+
+fn get_color_presets() -> HashMap<&'static str, &'static str> {
+    let mut presets = HashMap::new();
+    presets.insert("blue", "007ec6");
+    presets.insert("green", "4c1");
+    presets.insert("red", "e05d44");
+    presets.insert("orange", "fe7d37");
+    presets.insert("yellow", "dfb317");
+    presets.insert("brightgreen", "4c1");
+    presets.insert("lightgrey", "9f9f9f");
+    presets
+}
+
+// Placeholder for text width calculation
+fn calc_width(text: &str) -> i32 {
+    text.len() as i32 * 70 // Rough approximation
+}
+
+fn sanitize(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+fn generate_random_id(length: usize) -> String {
+    use rand::Rng;
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    let mut rng = rand::thread_rng();
+    (0..length)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARS.len());
+            CHARS[idx] as char
+        })
+        .collect()
+}
+
+fn create_accessible_text(label: Option<&str>, status: &str) -> String {
+    match label {
+        Some(l) => format!("{}: {}", l, status),
+        None => status.to_string(),
+    }
+}
+
+pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
+    if options.status.is_empty() {
+        return Err("<status> must be non-empty string");
+    }
+
+    let label = options.label.or(options.subject);
+
+    if label.is_none() && options.icon.is_none() {
+        return bare(BadgenOptions {
+            status: options.status,
+            color: options.color,
+            style: options.style,
+            scale: options.scale,
+            ..Default::default()
+        });
+    }
+
+    let color_presets = get_color_presets();
+    let color = options
+        .color
+        .as_ref()
+        .and_then(|c| color_presets.get(c.as_str()))
+        .unwrap();
+
+    let label_color = options
+        .label_color
+        .as_ref()
+        .and_then(|c| color_presets.get(c.as_str()))
+        .unwrap();
+
+    let icon_width = options.icon_width.unwrap_or(13) * 10;
+    let scale = options.scale.unwrap_or(1.0);
+    let style = options.style.unwrap_or(StyleOption::Classic);
+
+    let icon_span_width = if options.icon.is_some() {
+        if label.is_some() {
+            icon_width + 30
+        } else {
+            icon_width - 18
+        }
+    } else {
+        0
+    };
+
+    let sb_text_start = if options.icon.is_some() {
+        icon_span_width + 50
+    } else {
+        50
+    };
+
+    let sb_text_width = label.as_ref().map(|l| calc_width(l)).unwrap_or(0);
+    let st_text_width = calc_width(&options.status);
+    let sb_rect_width = sb_text_width + 100 + icon_span_width;
+    let st_rect_width = st_text_width + 100;
+    let width = sb_rect_width + st_rect_width;
+
+    let accessible_text = create_accessible_text(label.as_deref(), &options.status);
+    let sanitized_label = label.as_ref().map(|l| sanitize(l)).unwrap_or_default();
+    let sanitized_status = sanitize(&options.status);
+
+    let mut document = Document::new()
+        .set("width", scale * width as f64 / 10.0)
+        .set("height", scale * 20.0)
+        .set("viewBox", format!("0 0 {} 200", width))
+        .set("xmlns", "http://www.w3.org/2000/svg")
+        .set("role", "img")
+        .set("aria-label", accessible_text.clone());
+
+    if options.icon.is_some() {
+        document = document.set("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    }
+
+    // Add title
+    document = document.add(Title::new("").add(TextNode::new(accessible_text)));
+
+    match style {
+        StyleOption::Flat => {
+            // Background rectangles
+            let bg_group = Group::new()
+                .add(
+                    Rectangle::new()
+                        .set("fill", format!("#{}", label_color))
+                        .set("width", sb_rect_width)
+                        .set("height", 200),
+                )
+                .add(
+                    Rectangle::new()
+                        .set("fill", format!("#{}", color))
+                        .set("x", sb_rect_width)
+                        .set("width", st_rect_width)
+                        .set("height", 200),
+                );
+
+            document = document.add(bg_group);
+
+            // Text group
+            let mut text_group = Group::new()
+                .set("aria-hidden", "true")
+                .set("fill", "#fff")
+                .set("text-anchor", "start")
+                .set("font-family", "Verdana,DejaVu Sans,sans-serif")
+                .set("font-size", "110");
+
+            if !sanitized_label.is_empty() {
+                text_group = text_group
+                    .add(
+                        Text::new("")
+                            .set("x", sb_text_start + 10)
+                            .set("y", 148)
+                            .set("textLength", sb_text_width)
+                            .set("fill", "#000")
+                            .set("opacity", "0.1")
+                            .add(TextNode::new(sanitized_label.clone())),
+                    )
+                    .add(
+                        Text::new("")
+                            .set("x", sb_text_start)
+                            .set("y", 138)
+                            .set("textLength", sb_text_width)
+                            .add(TextNode::new(sanitized_label)),
+                    );
+            }
+
+            text_group = text_group
+                .add(
+                    Text::new("")
+                        .set("x", sb_rect_width + 55)
+                        .set("y", 148)
+                        .set("textLength", st_text_width)
+                        .set("fill", "#000")
+                        .set("opacity", "0.1")
+                        .add(TextNode::new(sanitized_status.clone())),
+                )
+                .add(
+                    Text::new("")
+                        .set("x", sb_rect_width + 45)
+                        .set("y", 138)
+                        .set("textLength", st_text_width)
+                        .add(TextNode::new(sanitized_status)),
+                );
+
+            document = document.add(text_group);
+        }
+        StyleOption::Classic => {
+            let gradient_id = generate_random_id(5);
+            let mask_id = generate_random_id(5);
+
+            // Add definitions
+            let mut defs = Definitions::new();
+
+            let gradient = LinearGradient::new()
+                .set("id", gradient_id.clone())
+                .set("x2", "0")
+                .set("y2", "100%")
+                .add(
+                    Stop::new()
+                        .set("offset", "0")
+                        .set("stop-opacity", ".1")
+                        .set("stop-color", "#EEE"),
+                )
+                .add(Stop::new().set("offset", "1").set("stop-opacity", ".1"));
+
+            let mask = Mask::new().set("id", mask_id.clone()).add(
+                Rectangle::new()
+                    .set("width", width)
+                    .set("height", 200)
+                    .set("rx", 30)
+                    .set("fill", "#FFF"),
+            );
+
+            defs = defs.add(gradient).add(mask);
+            document = document.add(defs);
+
+            // Masked group
+            let masked_group = Group::new()
+                .set("mask", format!("url(#{})", mask_id))
+                .add(
+                    Rectangle::new()
+                        .set("width", sb_rect_width)
+                        .set("height", 200)
+                        .set("fill", format!("#{}", label_color)),
+                )
+                .add(
+                    Rectangle::new()
+                        .set("width", st_rect_width)
+                        .set("height", 200)
+                        .set("fill", format!("#{}", color))
+                        .set("x", sb_rect_width),
+                )
+                .add(
+                    Rectangle::new()
+                        .set("width", width)
+                        .set("height", 200)
+                        .set("fill", format!("url(#{})", gradient_id)),
+                );
+
+            document = document.add(masked_group);
+
+            // Text group (similar to flat but with different opacity)
+            let mut text_group = Group::new()
+                .set("aria-hidden", "true")
+                .set("fill", "#fff")
+                .set("text-anchor", "start")
+                .set("font-family", "Verdana,DejaVu Sans,sans-serif")
+                .set("font-size", "110");
+
+            if !sanitized_label.is_empty() {
+                text_group = text_group
+                    .add(
+                        Text::new("")
+                            .set("x", sb_text_start + 10)
+                            .set("y", 148)
+                            .set("textLength", sb_text_width)
+                            .set("fill", "#000")
+                            .set("opacity", "0.25")
+                            .add(TextNode::new(sanitized_label.clone())),
+                    )
+                    .add(
+                        Text::new("")
+                            .set("x", sb_text_start)
+                            .set("y", 138)
+                            .set("textLength", sb_text_width)
+                            .add(TextNode::new(sanitized_label)),
+                    );
+            }
+
+            text_group = text_group
+                .add(
+                    Text::new("")
+                        .set("x", sb_rect_width + 55)
+                        .set("y", 148)
+                        .set("textLength", st_text_width)
+                        .set("fill", "#000")
+                        .set("opacity", "0.25")
+                        .add(TextNode::new(sanitized_status.clone())),
+                )
+                .add(
+                    Text::new("")
+                        .set("x", sb_rect_width + 45)
+                        .set("y", 138)
+                        .set("textLength", st_text_width)
+                        .add(TextNode::new(sanitized_status)),
+                );
+
+            document = document.add(text_group);
+        }
+    }
+
+    // Add icon if present
+    if let Some(icon) = options.icon {
+        let image = Image::new()
+            .set("x", 40)
+            .set("y", 35)
+            .set("width", icon_width)
+            .set(
+                "height",
+                match style {
+                    StyleOption::Flat => 132,
+                    StyleOption::Classic => 130,
+                },
+            )
+            .set("xlink:href", sanitize(&icon));
+
+        document = document.add(image);
+    }
+
+    Ok(document)
+}
+
+pub fn bare(options: BadgenOptions) -> Result<Document, &'static str> {
+    if options.status.is_empty() {
+        return Err("<status> must be non-empty string");
+    }
+
+    let color_presets = get_color_presets();
+    let color = options
+        .color
+        .as_ref()
+        .and_then(|c| color_presets.get(c.as_str()))
+        .unwrap();
+
+    let scale = options.scale.unwrap_or(1.0);
+    let style = options.style.unwrap_or(StyleOption::Classic);
+
+    let st_text_width = calc_width(&options.status);
+    let st_rect_width = st_text_width + 115;
+
+    let sanitized_status = sanitize(&options.status);
+
+    let mut document = Document::new()
+        .set("width", scale * st_rect_width as f64 / 10.0)
+        .set("height", scale * 20.0)
+        .set("viewBox", format!("0 0 {} 200", st_rect_width))
+        .set("xmlns", "http://www.w3.org/2000/svg")
+        .set("role", "img")
+        .set("aria-label", sanitized_status.clone());
+
+    document = document.add(Title::new("").add(TextNode::new(sanitized_status.clone())));
+
+    match style {
+        StyleOption::Flat => {
+            let bg_group = Group::new().add(
+                Rectangle::new()
+                    .set("fill", format!("#{}", color))
+                    .set("x", 0)
+                    .set("width", st_rect_width)
+                    .set("height", 200),
+            );
+
+            let text_group = Group::new()
+                .set("aria-hidden", "true")
+                .set("fill", "#fff")
+                .set("text-anchor", "start")
+                .set("font-family", "Verdana,DejaVu Sans,sans-serif")
+                .set("font-size", "110")
+                .add(
+                    Text::new("")
+                        .set("x", 65)
+                        .set("y", 148)
+                        .set("textLength", st_text_width)
+                        .set("fill", "#000")
+                        .set("opacity", "0.1")
+                        .add(TextNode::new(sanitized_status.clone())),
+                )
+                .add(
+                    Text::new("")
+                        .set("x", 55)
+                        .set("y", 138)
+                        .set("textLength", st_text_width)
+                        .add(TextNode::new(sanitized_status)),
+                );
+
+            document = document.add(bg_group).add(text_group);
+        }
+        StyleOption::Classic => {
+            let gradient_id = generate_random_id(5);
+            let mask_id = generate_random_id(5);
+
+            let mut defs = Definitions::new();
+
+            let gradient = LinearGradient::new()
+                .set("id", gradient_id.clone())
+                .set("x2", "0")
+                .set("y2", "100%")
+                .add(
+                    Stop::new()
+                        .set("offset", "0")
+                        .set("stop-opacity", ".1")
+                        .set("stop-color", "#EEE"),
+                )
+                .add(Stop::new().set("offset", "1").set("stop-opacity", ".1"));
+
+            let mask = Mask::new().set("id", mask_id.clone()).add(
+                Rectangle::new()
+                    .set("width", st_rect_width)
+                    .set("height", 200)
+                    .set("rx", 30)
+                    .set("fill", "#FFF"),
+            );
+
+            defs = defs.add(gradient).add(mask);
+            document = document.add(defs);
+
+            let masked_group = Group::new()
+                .set("mask", format!("url(#{})", mask_id))
+                .add(
+                    Rectangle::new()
+                        .set("width", st_rect_width)
+                        .set("height", 200)
+                        .set("fill", format!("#{}", color))
+                        .set("x", 0),
+                )
+                .add(
+                    Rectangle::new()
+                        .set("width", st_rect_width)
+                        .set("height", 200)
+                        .set("fill", format!("url(#{})", gradient_id)),
+                );
+
+            let text_group = Group::new()
+                .set("aria-hidden", "true")
+                .set("fill", "#fff")
+                .set("text-anchor", "start")
+                .set("font-family", "Verdana,DejaVu Sans,sans-serif")
+                .set("font-size", "110")
+                .add(
+                    Text::new("")
+                        .set("x", 65)
+                        .set("y", 148)
+                        .set("textLength", st_text_width)
+                        .set("fill", "#000")
+                        .set("opacity", "0.25")
+                        .add(TextNode::new(sanitized_status.clone())),
+                )
+                .add(
+                    Text::new("")
+                        .set("x", 55)
+                        .set("y", 138)
+                        .set("textLength", st_text_width)
+                        .add(TextNode::new(sanitized_status)),
+                );
+
+            document = document.add(masked_group).add(text_group);
+        }
+    }
+
+    Ok(document)
+}
+
+impl Default for BadgenOptions {
+    fn default() -> Self {
+        Self {
+            status: String::new(),
+            subject: None,
+            color: None,
+            label: None,
+            label_color: None,
+            style: None,
+            icon: None,
+            icon_width: None,
+            scale: None,
+        }
+    }
+}
