@@ -1,8 +1,38 @@
-use mlua::prelude::*;
 use mlua::Function;
 use mlua::Table;
+use mlua::prelude::*;
 
 mod parser;
+mod svg;
+
+fn debug_print(lua: &Lua, table: LuaTable) -> LuaResult<()> {
+    // get globals
+    let globals = lua.globals();
+
+    // Convert to string
+    match table.raw_len() {
+        0 => {
+            // Hash table - iterate through key-value pairs
+            println!("Table (hash): {{");
+            for pair in table.pairs::<LuaValue, LuaValue>() {
+                let (key, value) = pair?;
+                println!("  {:?} = {:?}", key, value);
+            }
+            println!("}}");
+        }
+        _ => {
+            // Array-like table
+            println!("Table (array): [");
+            for i in 1..=table.raw_len() {
+                let value: LuaValue = table.raw_get(i)?;
+                println!("  [{}] = {:?}", i, value);
+            }
+            println!("]");
+        }
+    }
+
+    Ok(())
+}
 
 fn main() {
     // Create the lua struct for managing lua state
