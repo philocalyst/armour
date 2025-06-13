@@ -1,0 +1,28 @@
+## Badge
+
+- Sepearated into components. 
+	- The average badge will have just two of these, but the foundation is useful for different structures (key value value, value, etc.)
+	- Each component will have its own styling (background/forgreound with Alpha) 
+	- Link for the component
+- Badge-wide settings
+	- Cache length
+	- Badge size (font scales with this)
+	- Component ratio (defaults to two)
+	- Default link (overriden by any applied to a specific component of a badge)
+	- Component spacing
+	- Wrap?
+
+Was thinking the components and their options could be declared per component with a universal delimeter? Maybe a dash? Then the whole badge options could fall under different keys. Implemented under a URL, not a REST API. 
+
+Keep in mind that ALL of the styling is going to be done with CSS. We want to expose a way for users to provide their own CSS to override. This should force really really good tag design because we'd be using it as well. Stylesheets would also be located in the repository, that users could plug into. Just like Lua, users could either pass an encoded string or link to a hosted file.
+
+- CSS would use BEM naming conventions
+- CSS built around CSS vars :)
+- Flex-grow ratios
+- Integrates with some icon repository for sourcing icons?
+- Dark/light API? Maybe this would be opt/in filters + something only available to those shipping custom CSS.
+- Be aware of CSS attacks.
+- Have a CLI tool for generating the links?
+- Accessibility TOP PRIORITY
+- Badge errors
+- Webhooks?
