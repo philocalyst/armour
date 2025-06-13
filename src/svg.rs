@@ -1,3 +1,5 @@
+use ab_glyph::{Font, FontRef};
+use fontdb;
 use std::collections::HashMap;
 use svg::Document;
 use svg::node::Text as TextNode;
@@ -19,7 +21,7 @@ pub struct BadgenOptions {
     pub label_color: Option<String>,
     pub style: Option<StyleOption>,
     pub icon: Option<String>,
-    pub icon_width: Option<i32>,
+    pub icon_width: Option<f32>,
     pub scale: Option<f64>,
 }
 
@@ -110,30 +112,30 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap();
 
-    let icon_width = options.icon_width.unwrap_or(13) * 10;
+    let icon_width = options.icon_width.unwrap_or(13.0) * 10.0;
     let scale = options.scale.unwrap_or(1.0);
     let style = options.style.unwrap_or(StyleOption::Classic);
 
     let icon_span_width = if options.icon.is_some() {
         if label.is_some() {
-            icon_width + 30
+            icon_width + 30.0
         } else {
-            icon_width - 18
+            icon_width - 18.0
         }
     } else {
-        0
+        0.0
     };
 
     let sb_text_start = if options.icon.is_some() {
-        icon_span_width + 50
+        icon_span_width + 50.0
     } else {
-        50
+        50.0
     };
 
-    let sb_text_width = label.as_ref().map(|l| calc_width(l)).unwrap_or(0);
+    let sb_text_width = label.as_ref().map(|l| calc_width(l)).unwrap_or(0.0);
     let st_text_width = calc_width(&options.status);
-    let sb_rect_width = sb_text_width + 100 + icon_span_width;
-    let st_rect_width = st_text_width + 100;
+    let sb_rect_width = sb_text_width + 100.0 + icon_span_width;
+    let st_rect_width = st_text_width + 100.0;
     let width = sb_rect_width + st_rect_width;
 
     let accessible_text = create_accessible_text(label.as_deref(), &options.status);
@@ -188,7 +190,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
                 text_group = text_group
                     .add(
                         Text::new("")
-                            .set("x", sb_text_start + 10)
+                            .set("x", sb_text_start + 10.0)
                             .set("y", 148)
                             .set("textLength", sb_text_width)
                             .set("fill", "#000")
@@ -207,7 +209,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
             text_group = text_group
                 .add(
                     Text::new("")
-                        .set("x", sb_rect_width + 55)
+                        .set("x", sb_rect_width + 55.0)
                         .set("y", 148)
                         .set("textLength", st_text_width)
                         .set("fill", "#000")
@@ -216,7 +218,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
                 )
                 .add(
                     Text::new("")
-                        .set("x", sb_rect_width + 45)
+                        .set("x", sb_rect_width + 45.0)
                         .set("y", 138)
                         .set("textLength", st_text_width)
                         .add(TextNode::new(sanitized_status)),
@@ -291,7 +293,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
                 text_group = text_group
                     .add(
                         Text::new("")
-                            .set("x", sb_text_start + 10)
+                            .set("x", sb_text_start + 10.0)
                             .set("y", 148)
                             .set("textLength", sb_text_width)
                             .set("fill", "#000")
@@ -310,7 +312,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
             text_group = text_group
                 .add(
                     Text::new("")
-                        .set("x", sb_rect_width + 55)
+                        .set("x", sb_rect_width + 55.0)
                         .set("y", 148)
                         .set("textLength", st_text_width)
                         .set("fill", "#000")
@@ -319,7 +321,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
                 )
                 .add(
                     Text::new("")
-                        .set("x", sb_rect_width + 45)
+                        .set("x", sb_rect_width + 45.0)
                         .set("y", 138)
                         .set("textLength", st_text_width)
                         .add(TextNode::new(sanitized_status)),
@@ -366,7 +368,7 @@ pub fn bare(options: BadgenOptions) -> Result<Document, &'static str> {
     let style = options.style.unwrap_or(StyleOption::Classic);
 
     let st_text_width = calc_width(&options.status);
-    let st_rect_width = st_text_width + 115;
+    let st_rect_width = st_text_width + 115.0;
 
     let sanitized_status = &options.status;
 
