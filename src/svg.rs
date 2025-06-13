@@ -40,14 +40,6 @@ fn calc_width(text: &str) -> i32 {
     text.len() as i32 * 70 // Rough approximation
 }
 
-fn sanitize(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
 fn generate_random_id(length: usize) -> String {
     use rand::Rng;
     const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -124,8 +116,8 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
     let width = sb_rect_width + st_rect_width;
 
     let accessible_text = create_accessible_text(label.as_deref(), &options.status);
-    let sanitized_label = label.as_ref().map(|l| sanitize(l)).unwrap_or_default();
-    let sanitized_status = sanitize(&options.status);
+    let sanitized_label = label.as_ref().map(|l| l).unwrap();
+    let sanitized_status = &options.status;
 
     let mut document = Document::new()
         .set("width", scale * width as f64 / 10.0)
@@ -328,7 +320,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
                     StyleOption::Classic => 130,
                 },
             )
-            .set("xlink:href", sanitize(&icon));
+            .set("xlink:href", icon);
 
         document = document.add(image);
     }
@@ -354,7 +346,7 @@ pub fn bare(options: BadgenOptions) -> Result<Document, &'static str> {
     let st_text_width = calc_width(&options.status);
     let st_rect_width = st_text_width + 115;
 
-    let sanitized_status = sanitize(&options.status);
+    let sanitized_status = &options.status;
 
     let mut document = Document::new()
         .set("width", scale * st_rect_width as f64 / 10.0)
