@@ -14,15 +14,13 @@ pub enum StyleOption {
 }
 
 pub struct BadgenOptions {
-    pub status: String,
-    pub subject: Option<String>,
-    pub color: Option<String>,
-    pub label: Option<String>,
-    pub label_color: Option<String>,
-    pub style: Option<StyleOption>,
-    pub icon: Option<String>,
-    pub icon_width: Option<f32>,
-    pub scale: Option<f64>,
+    pub status: String,                // The "right side" of the k/v THIS IS NEEDED!!
+    pub label: Option<String>,         // The "left side" of the k/v, describing the status
+    pub label_color: Option<String>,   // A color override of the default status color (gray)
+    pub subject_color: Option<String>, // A color override on the default subject color (blue)
+    pub icon: Option<String>,          // A name of a supported icon
+    pub icon_scale: Option<f32>,       // The scale of said icon
+    pub scale: Option<f64>,            // The scale of the entire badge
 }
 
 fn get_color_presets() -> HashMap<&'static str, &'static str> {
