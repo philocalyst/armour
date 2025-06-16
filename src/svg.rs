@@ -7,6 +7,8 @@ use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
 
+use crate::colors::COLORS;
+
 #[derive(Clone)]
 pub enum StyleOption {
     Flat,
@@ -174,7 +176,7 @@ pub fn bare(options: BadgerOptions) -> Result<Document, &'static str> {
         return Err("<status> must be non-empty string");
     }
 
-    let color_presets = get_color_presets();
+    let color_presets = &COLORS;
     let color = options
         .label_color
         .as_ref()
