@@ -13,7 +13,7 @@ pub enum StyleOption {
     Classic,
 }
 
-pub struct BadgenOptions {
+pub struct BadgerOptions {
     pub status: String,                // The "right side" of the k/v THIS IS NEEDED!!
     pub label: Option<String>,         // The "left side" of the k/v, describing the status
     pub label_color: Option<String>,   // A color override of the default status color (gray)
@@ -78,7 +78,7 @@ fn create_accessible_text(label: Option<&str>, status: &str) -> String {
     }
 }
 
-pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
+pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
     // We need at least a status
     if options.status.is_empty() {
         return Err("<status> must be non-empty string");
@@ -89,7 +89,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
     // Check for the case where a label isn't specified, and pipe
     // to a specific styling for that particular use
     if label.is_none() && options.icon.is_none() {
-        return bare(BadgenOptions {
+        return bare(BadgerOptions {
             status: options.status,
             label_color: options.label_color,
             scale: options.scale,
@@ -169,7 +169,7 @@ pub fn badgen(options: BadgenOptions) -> Result<Document, &'static str> {
     Ok(document)
 }
 
-pub fn bare(options: BadgenOptions) -> Result<Document, &'static str> {
+pub fn bare(options: BadgerOptions) -> Result<Document, &'static str> {
     if options.status.is_empty() {
         return Err("<status> must be non-empty string");
     }
@@ -202,7 +202,7 @@ pub fn bare(options: BadgenOptions) -> Result<Document, &'static str> {
     Ok(document)
 }
 
-impl Default for BadgenOptions {
+impl Default for BadgerOptions {
     fn default() -> Self {
         Self {
             status: String::new(),
