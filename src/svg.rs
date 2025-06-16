@@ -99,7 +99,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
         });
     }
 
-    // TODO: Use the XKCD color map :)
     let color_presets = get_color_presets();
     let status_color = options
         .label_color
@@ -172,10 +171,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
 }
 
 pub fn bare(options: BadgerOptions) -> Result<Document, &'static str> {
-    if options.status.is_empty() {
-        return Err("<status> must be non-empty string");
-    }
-
     let color_presets = &COLORS;
     let color = options
         .label_color
