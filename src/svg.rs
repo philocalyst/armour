@@ -118,11 +118,14 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
         50.0
     };
 
-    let sb_text_width = label.as_ref().map(|l| calc_width(l)).unwrap_or(0.0);
-    let st_text_width = calc_width(&options.status);
-    let sb_rect_width = sb_text_width + 100.0 + icon_span_width;
-    let st_rect_width = st_text_width + 100.0;
-    let width = sb_rect_width + st_rect_width;
+    const SPACER: f32 = 100.0;
+
+    // We're not worrying about height here because it's largely constant.
+    let label_width = calc_width(label)?;
+    let status_width = calc_width(&options.status)?;
+    let label_box_width = label_width + SPACER + icon_span_width; // The container for the label final width
+    let status_box_width = status_width + SPACER; // The container for the status final width
+    let width = label_box_width + status_box_width; // The TOTAL width of both
 
     let accessible_text = create_accessible_text(label.as_deref(), &options.status);
     let sanitized_label = label.as_ref().map(|l| l).unwrap();
