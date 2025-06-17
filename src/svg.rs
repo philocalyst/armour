@@ -1,13 +1,13 @@
 use ab_glyph::{Font, FontRef};
-use css_style;
+// use css_style;
 use fontdb;
 use std::collections::HashMap;
 use std::error::Error;
-use svg::Document;
-use svg::node::Text as TextNode;
 use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
+use svg::node::Text as TextNode;
+use svg::Document;
 
 use crate::colors::COLORS;
 
@@ -29,7 +29,7 @@ pub struct BadgerOptions {
 // Placeholder for text width calculation
 fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
     let font = FontRef::try_from_slice(include_bytes!(
-        "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
+        "/home/jack/.local/share/fonts/FiraCodeNerdFont-Regular.ttf" // "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
     ))?;
 
     // Get the total width of the entire string
@@ -137,7 +137,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .set("viewBox", format!("0 0 {} 200", width))
         .set("xmlns", "http://www.w3.org/2000/svg")
         .set("role", "img") // The badge is functionally an image
-        .set("aria-label", accessible_text.clone()); // We label it the status.. 
+        .set("aria-label", accessible_text.clone()); // We label it the status..
 
     if options.icon.is_some() {
         document = document.set("xmlns:xlink", "http://www.w3.org/1999/xlink");
