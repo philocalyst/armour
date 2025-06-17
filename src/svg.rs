@@ -16,16 +16,6 @@ pub enum StyleOption {
 }
 
 pub struct BadgerOptions {
-fn get_color_presets() -> HashMap<&'static str, &'static str> {
-    let mut presets = HashMap::new();
-    presets.insert("blue", "007ec6");
-    presets.insert("green", "4c1");
-    presets.insert("red", "e05d44");
-    presets.insert("orange", "fe7d37");
-    presets.insert("yellow", "dfb317");
-    presets.insert("brightgreen", "4c1");
-    presets.insert("lightgrey", "9f9f9f");
-    presets
     pub status: String,               // The "right side" of the k/v THIS IS NEEDED!!
     pub label: Option<String>,        // The "left side" of the k/v, describing the status
     pub label_color: Option<String>,  // A color override of the default status color (gray)
