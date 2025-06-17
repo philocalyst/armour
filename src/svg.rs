@@ -26,11 +26,10 @@ pub struct BadgerOptions {
 }
 
 // Placeholder for text width calculation
-fn calc_width(text: &str) -> f32 {
+fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
     let font = FontRef::try_from_slice(include_bytes!(
         "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
-    ))
-    .unwrap();
+    ))?;
 
     // Get the total width of the entire string
     // We don't need to worry about newlines here because they
@@ -88,6 +87,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
     }
 
     let color_presets = &COLORS;
+
     let status_color = options
         .label_color
         .and_then(|c| color_presets.get(c.as_str()))
