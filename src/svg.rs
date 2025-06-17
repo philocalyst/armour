@@ -76,7 +76,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Check for the case where a label isn't specified, and pipe
     // to a specific styling for that particular use
-    if label.is_none() && options.icon.is_none() {
+    if label.is_none() {
         return bare(BadgerOptions {
             status: options.status,
             label_color: options.label_color,
@@ -84,6 +84,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             ..Default::default()
         });
     }
+
+    let label = label.expect("If it was none bare would have handled it by now");
 
     let color_presets = &COLORS;
 
@@ -94,33 +96,26 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let label_color = options
         .status_color
-        .as_ref()
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"white"); // Fallback color is white
 
-    let icon_width = 13.0 * 10.0;
+    let icon_width = 130.0;
     let scale = options.scale.unwrap_or(1.0);
 
     let icon_span_width = if options.icon.is_some() {
-        if label.is_some() {
-            icon_width + 30.0
-        } else {
-            icon_width - 18.0
-        }
+        icon_width + 30.0 // Icon width + some right margin
     } else {
-        0.0
+        0.0 // No icon no problem
     };
 
-    let sb_text_start = if options.icon.is_some() {
+    // Handle the starting position with an icon
+    let status_text_begin = if options.icon.is_some() {
         icon_span_width + 50.0
     } else {
         50.0
     };
 
     const SPACER: f32 = 100.0;
-
-    // TODO: Fix this janky label logic (A label is not required, this forces it to be required...)
-    let label = label.unwrap();
 
     // We're not worrying about height here because it's largely constant.
     let label_width = calc_width(&label)?;
