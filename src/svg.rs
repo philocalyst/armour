@@ -1,4 +1,5 @@
 use ab_glyph::{Font, FontRef};
+use css_style;
 use fontdb;
 use std::collections::HashMap;
 use svg::Document;
@@ -137,8 +138,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
         .set("height", scale * 20.0)
         .set("viewBox", format!("0 0 {} 200", width))
         .set("xmlns", "http://www.w3.org/2000/svg")
-        .set("role", "img")
-        .set("aria-label", accessible_text.clone());
+        .set("role", "img") // The badge is functionally an image
+        .set("aria-label", accessible_text.clone()); // We label it the status.. 
 
     if options.icon.is_some() {
         document = document.set("xmlns:xlink", "http://www.w3.org/1999/xlink");
