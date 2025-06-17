@@ -156,6 +156,53 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
+    let bg_group = Group::new()
+        .add(
+            Rectangle::new()
+                .set("fill", format!("#{}", label_color))
+                .set("width", label_box_width)
+                .set("height", 200),
+        )
+        .add(
+            Rectangle::new()
+                .set("fill", format!("#{}", status_color))
+                .set("x", label_box_width)
+                .set("width", status_box_width)
+                .set("height", 200),
+        );
+
+    document = document.add(bg_group);
+
+    // Text group
+    let mut text_group = Group::new()
+        .set("aria-hidden", "true")
+        .set("fill", "#fff")
+        .set("text-anchor", "start")
+        .set("font-family", "Verdana,DejaVu Sans,sans-serif")
+        .set("font-size", "110");
+
+    text_group = text_group
+        .add(
+            Text::new("")
+                .set("x", label_box_width + 55.0)
+                .set("y", 148)
+                .set("textLength", status_box_width)
+                .set("fill", "#000")
+                .set("opacity", "0.1")
+                .add(TextNode::new(status.clone())),
+        )
+        .add(
+            Text::new("")
+                .set("x", label_box_width + 45.0)
+                .set("y", 138)
+                .set("textLength", status_box_width)
+                .add(TextNode::new(status)),
+        );
+
+    document = document.add(text_group);
+
+    println!("{:#}", document);
+
     Ok(document)
 }
 
