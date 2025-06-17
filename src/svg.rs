@@ -19,9 +19,9 @@ pub enum StyleOption {
 
 pub struct BadgerOptions {
     pub status: String,               // The "right side" of the k/v THIS IS NEEDED!!
+    pub status_color: Option<String>, // A color override on the default status color (blue)
     pub label: Option<String>,        // The "left side" of the k/v, describing the status
     pub label_color: Option<String>,  // A color override of the default status color (gray)
-    pub status_color: Option<String>, // A color override on the default status color (blue)
     pub icon: Option<String>,         // A name of a supported icon
     pub scale: Option<f64>,           // The scale of the entire badge
 }
@@ -119,6 +119,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     const SPACER: f32 = 100.0;
 
+    // TODO: Fix this janky label logic (A label is not required, this forces it to be required...)
     let label = label.unwrap();
 
     // We're not worrying about height here because it's largely constant.
