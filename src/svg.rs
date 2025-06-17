@@ -101,18 +101,20 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let icon_width = 130.0;
     let scale = options.scale.unwrap_or(1.0);
+    let icon_right_margin = 30.0;
+    let text_starting_position = 50.0;
 
     let icon_span_width = if options.icon.is_some() {
-        icon_width + 30.0 // Icon width + some right margin
+        icon_width + icon_right_margin // Icon width + some right margin
     } else {
         0.0 // No icon no problem
     };
 
     // Handle the starting position with an icon
     let status_text_begin = if options.icon.is_some() {
-        icon_span_width + 50.0
+        icon_span_width + text_starting_position
     } else {
-        50.0
+        text_starting_position
     };
 
     const SPACER: f32 = 100.0;
