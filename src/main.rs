@@ -1,6 +1,10 @@
+use std::error::Error;
+
 use mlua::Function;
 use mlua::Table;
 use mlua::prelude::*;
+use svg::BadgerOptions;
+use svg::badgen;
 
 mod colors;
 mod parser;
@@ -35,9 +39,15 @@ fn debug_print(lua: &Lua, table: LuaTable) -> LuaResult<()> {
     Ok(())
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     // Create the lua struct for managing lua state
     let lua = Lua::new();
+
+    badgen(BadgerOptions {
+        status: String::from("hi"),
+        label: Some(String::from("hello")),
+        ..BadgerOptions::default()
+    })?;
 
     // Setup the inputs (Just a URL for now)
     let job = lua.create_table_from([("url", "google.com")]).unwrap();
@@ -52,4 +62,5 @@ fn main() {
     let output = source.call_method::<Table>("build_badge", job).unwrap();
 
     debug_print(&lua, output).unwrap();
+    Ok(())
 }

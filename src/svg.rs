@@ -201,8 +201,13 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     document = document.add(text_group);
 
-    println!("{:#}", document);
+    let output = format!("{:#}", document);
 
+    output.replace("\n", "");
+
+    use std::fs;
+
+    fs::write("./test.svg", output);
     Ok(document)
 }
 
