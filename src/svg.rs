@@ -86,6 +86,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     }
 
     let label = label.expect("If it was none bare would have handled it by now");
+    let status = options.status;
 
     let color_presets = &COLORS;
 
@@ -121,14 +122,12 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // We're not worrying about height here because it's largely constant.
     let label_width = calc_width(&label)?;
-    let status_width = calc_width(&options.status)?;
+    let status_width = calc_width(&status)?;
     let label_box_width = label_width + SPACER + icon_span_width; // The container for the label final width
     let status_box_width = status_width + SPACER; // The container for the status final width
     let width = label_box_width + status_box_width; // The TOTAL width of both
 
-    let accessible_text = create_accessible_text(&label, &options.status);
-    let sanitized_label = label;
-    let sanitized_status = &options.status;
+    let accessible_text = create_accessible_text(&label, &status);
 
     // Create boilerplate svg shell
     let mut document = Document::new()
