@@ -87,7 +87,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
         });
     }
 
-    let color_presets = get_color_presets();
+    let color_presets = &COLORS;
     let status_color = options
         .label_color
         .and_then(|c| color_presets.get(c.as_str()))
