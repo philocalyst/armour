@@ -2,6 +2,7 @@ use ab_glyph::{Font, FontRef};
 use css_style;
 use fontdb;
 use std::collections::HashMap;
+use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{
@@ -34,7 +35,8 @@ fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
     // Get the total width of the entire string
     // We don't need to worry about newlines here because they
     // SHOULDNT EXIST
-    text.chars()
+    Ok(text
+        .chars()
         .into_iter()
         .map(|c| {
             // TODO: Allow font size to be configurable
@@ -45,7 +47,7 @@ fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
 
             outline.px_bounds().width()
         })
-        .sum()
+        .sum())
 }
 
 fn generate_random_id(length: usize) -> String {
@@ -60,17 +62,14 @@ fn generate_random_id(length: usize) -> String {
         .collect()
 }
 
-fn create_accessible_text(label: Option<&str>, status: &str) -> String {
-    match label {
-        Some(l) => format!("{}: {}", l, status),
-        None => status.to_string(),
-    }
+fn create_accessible_text(label: &str, status: &str) -> String {
+    format!("{}: {}", label, status)
 }
 
-pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
+pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     // We need at least a status
     if options.status.is_empty() {
-        return Err("<status> must be non-empty string");
+        return Err("<status> must be non-empty string".into());
     }
 
     let label = options.label;
@@ -120,15 +119,17 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
 
     const SPACER: f32 = 100.0;
 
+    let label = label.unwrap();
+
     // We're not worrying about height here because it's largely constant.
-    let label_width = calc_width(label)?;
+    let label_width = calc_width(&label)?;
     let status_width = calc_width(&options.status)?;
     let label_box_width = label_width + SPACER + icon_span_width; // The container for the label final width
     let status_box_width = status_width + SPACER; // The container for the status final width
     let width = label_box_width + status_box_width; // The TOTAL width of both
 
-    let accessible_text = create_accessible_text(label.as_deref(), &options.status);
-    let sanitized_label = label.as_ref().map(|l| l).unwrap();
+    let accessible_text = create_accessible_text(&label, &options.status);
+    let sanitized_label = label;
     let sanitized_status = &options.status;
 
     // Create boilerplate svg shell
@@ -161,7 +162,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
     Ok(document)
 }
 
-pub fn bare(options: BadgerOptions) -> Result<Document, &'static str> {
+pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let color_presets = &COLORS;
     let color = options
         .label_color
@@ -171,7 +172,7 @@ pub fn bare(options: BadgerOptions) -> Result<Document, &'static str> {
 
     let scale = options.scale.unwrap_or(1.0);
 
-    let st_text_width = calc_width(&options.status);
+    let st_text_width = calc_width(&options.status)?;
     let st_rect_width = st_text_width + 115.0;
 
     let sanitized_status = &options.status;
