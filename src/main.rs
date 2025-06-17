@@ -2,6 +2,7 @@ use mlua::Function;
 use mlua::Table;
 use mlua::prelude::*;
 
+mod colors;
 mod parser;
 mod svg;
 

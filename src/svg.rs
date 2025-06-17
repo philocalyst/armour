@@ -94,7 +94,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
         .unwrap_or(&"black"); // Fallback color is black
 
     let label_color = options
-        .subject_color
+        .status_color
         .as_ref()
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"white"); // Fallback color is white
@@ -193,7 +193,7 @@ impl Default for BadgerOptions {
             status: String::new(),
             label: None,
             label_color: None,
-            subject_color: None,
+            status_color: None,
             icon: None,
             icon_scale: None,
             scale: None,
