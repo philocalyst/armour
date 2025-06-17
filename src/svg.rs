@@ -22,7 +22,6 @@ pub struct BadgerOptions {
     pub label_color: Option<String>,  // A color override of the default status color (gray)
     pub status_color: Option<String>, // A color override on the default status color (blue)
     pub icon: Option<String>,         // A name of a supported icon
-    pub icon_scale: Option<f32>,      // The scale of said icon
     pub scale: Option<f64>,           // The scale of the entire badge
 }
 
@@ -100,7 +99,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, &'static str> {
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"white"); // Fallback color is white
 
-    let icon_width = options.icon_scale.unwrap_or(13.0) * 10.0;
+    let icon_width = 13.0 * 10.0;
     let scale = options.scale.unwrap_or(1.0);
 
     let icon_span_width = if options.icon.is_some() {
@@ -199,7 +198,6 @@ impl Default for BadgerOptions {
             label_color: None,
             status_color: None,
             icon: None,
-            icon_scale: None,
             scale: None,
         }
     }
