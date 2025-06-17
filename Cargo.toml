@@ -7,5 +7,6 @@ edition = "2024"
 ab_glyph = "0.2.29"
 fontdb = "0.23.0"
 mlua                = { version = "0.10.5", features = [ "anyhow", "async", "error-send", "lua54", "macros", "serialize" ] }
+phf = { version = "0.11.3", features = ["macros"] }
 rand = "0.9.1"
 svg = "0.18.0"
