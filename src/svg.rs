@@ -3,11 +3,11 @@ use ab_glyph::{Font, FontRef};
 use fontdb;
 use std::collections::HashMap;
 use std::error::Error;
+use svg::Document;
+use svg::node::Text as TextNode;
 use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
-use svg::node::Text as TextNode;
-use svg::Document;
 
 use crate::colors::COLORS;
 
@@ -29,7 +29,7 @@ pub struct BadgerOptions {
 // Placeholder for text width calculation
 fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
     let font = FontRef::try_from_slice(include_bytes!(
-        "/home/jack/.local/share/fonts/FiraCodeNerdFont-Regular.ttf" // "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
+        "../fonts/liberation_mono/LiberationMono-Regular.ttf" // "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
     ))?;
 
     // Get the total width of the entire string
