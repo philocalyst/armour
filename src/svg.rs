@@ -166,11 +166,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("y", 40),
         );
 
-    let style = css_style::style()
-        .and_background(|conf| conf.color(color::named::BLANCHEDALMOND))
-        .and_text(|conf| conf.color(color::named::BEIGE));
+    let style = css_style::style().insert("fill", "beige");
 
-    let style = format!(r#"g[aria-hidden="true"] {{{}}}"#, style);
+    let style = format!(r#"g {{{}}}"#, style);
 
     // Add styling
     document = document.add(svg::node::element::Style::new(style));
