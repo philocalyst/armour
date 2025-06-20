@@ -153,7 +153,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .set("fill", "#fff")
         .set("text-anchor", "start")
         .set("font-family", "Verdana,DejaVu Sans,sans-serif")
-        .set("font-size", "110");
+        .set("font-size", "10");
 
     // Handle the starting position with an icon
     let label_text_begin = icon_span_width;
