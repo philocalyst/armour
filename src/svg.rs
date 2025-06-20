@@ -148,23 +148,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
-    let bg_group = Group::new()
-        .add(
-            Rectangle::new()
-                .set("fill", format!("#{}", label_color))
-                .set("width", label_box_width)
-                .set("height", 200),
-        )
-        .add(
-            Rectangle::new()
-                .set("fill", format!("#{}", status_color))
-                .set("x", label_box_width)
-                .set("width", status_box_width)
-                .set("height", 200),
-        );
-
-    document = document.add(bg_group);
-
     // Text group
     let mut text_group = Group::new()
         .set("aria-hidden", "true")
