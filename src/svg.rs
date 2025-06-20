@@ -159,17 +159,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let label_text_begin = icon_span_width;
 
     text_group = text_group
-        .add(
-            Text::new(label)
-                .set("x", label_text_begin)
-                .set("y", 40)
-                .set("textLength", label_box_width),
-        )
+        .add(Text::new(label).set("x", label_text_begin).set("y", 40))
         .add(
             Text::new(status)
                 .set("x", label_box_width + SPACER)
-                .set("y", 40)
-                .set("textLength", status_box_width),
+                .set("y", 40),
         );
 
     let style = css_style::style()
