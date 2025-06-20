@@ -100,10 +100,10 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"white"); // Fallback color is white
 
-    let icon_width = 130.0;
+    let icon_width = 30.0; // How large an icon is (the height will be capped though)
     let scale = options.scale.unwrap_or(1.0);
-    let icon_right_margin = 30.0;
-    let text_starting_position = 50.0;
+    let icon_right_margin = 10.0;
+    let label_starting_position = icon_width + icon_right_margin; // Text comes right after the icon
 
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
@@ -113,9 +113,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Handle the starting position with an icon
     let status_text_begin = if options.icon.is_some() {
-        icon_span_width + text_starting_position
+        icon_span_width + label_starting_position
     } else {
-        text_starting_position
+        label_starting_position
     };
 
     const SPACER: f32 = 100.0;
