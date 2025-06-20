@@ -148,12 +148,29 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
+    let bg_group = Group::new()
+        .add(
+            Rectangle::new()
+                .set("fill", label_background_color.to_string())
+                .set("width", label_box_width)
+                .set("height", 200),
+        )
+        .add(
+            Rectangle::new()
+                .set("fill", status_background_color.to_string())
+                .set("x", label_box_width)
+                .set("width", status_box_width)
+                .set("height", 200),
+        );
+
+    document = document.add(bg_group);
+
     // Text group
     let mut text_group = Group::new()
         .set("fill", "#fff")
         .set("text-anchor", "start")
         .set("font-family", "Verdana,DejaVu Sans,sans-serif")
-        .set("font-size", "10");
+        .set("font-size", "20");
 
     // Handle the starting position with an icon
     let label_text_begin = icon_span_width;
