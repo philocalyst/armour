@@ -128,7 +128,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Create boilerplate svg shell
     let mut document = Document::new()
-        .set("viewBox", format!("0 45 {} 200", width))
+        .set("viewBox", format!("0 25 {} 70", width))
         .set("xmlns", "http://www.w3.org/2000/svg")
         .set("role", "img") // The badge is functionally an image
         .set("aria-label", accessible_text.clone()); // We label it the status..
@@ -155,14 +155,14 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
-                .set("width", label_box_width)
+                .set("width", em(2.1).to_string())
                 .set("height", em(1.2).to_string()),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
-                .set("x", label_box_width)
-                .set("width", status_box_width)
+                .set("x", em(2.1).to_string())
+                .set("width", em(1).to_string())
                 .set("height", em(1.2).to_string()),
         );
 
@@ -182,7 +182,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         )
         .add(
             Text::new(status)
-                .set("x", label_box_width + SPACER)
+                .set("x", em(2.2).to_string())
                 .set("y", em(1).to_string()),
         );
 
