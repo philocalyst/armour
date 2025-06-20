@@ -1,5 +1,5 @@
 use ab_glyph::{Font, FontRef};
-use css_style::Style;
+use css_style::{Style, color};
 // use css_style;
 use fontdb;
 use std::collections::HashMap;
@@ -137,9 +137,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     // Add title
     document = document.add(Title::new("").add(TextNode::new(accessible_text)));
 
-    // Add styling
-    document = document.add(svg::node::element::Style::new(""));
-
     // Add icon if present
     if let Some(icon) = options.icon {
         let image = Image::new()
@@ -193,11 +190,18 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("textLength", status_box_width),
         );
 
+    let style = css_style::style().and_background(|conf| conf.color(color::named::BLANCHEDALMOND));
+
+    println!("{}", style);
+
+    // Add styling
+    document = document.add(svg::node::element::Style::new(""));
+
     document = document.add(text_group);
 
     let output = format!("{:#}", document);
 
-    output.replace("\n", "");
+    let output = output.replace("\n", "");
 
     use std::fs;
 
