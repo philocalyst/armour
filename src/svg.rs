@@ -128,7 +128,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Create boilerplate svg shell
     let mut document = Document::new()
-        .set("viewBox", format!("0 0 {} 200", width))
+        .set("viewBox", format!("0 45 {} 200", width))
         .set("xmlns", "http://www.w3.org/2000/svg")
         .set("role", "img") // The badge is functionally an image
         .set("aria-label", accessible_text.clone()); // We label it the status..
@@ -156,14 +156,12 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
                 .set("width", label_box_width)
-                .set("y", em(1).to_string())
                 .set("height", em(1.2).to_string()),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
                 .set("x", label_box_width)
-                .set("y", em(1).to_string())
                 .set("width", status_box_width)
                 .set("height", em(1.2).to_string()),
         );
@@ -180,16 +178,17 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Text::new(label)
                 .set("x", label_text_begin)
-                .set("y", em(2).to_string()),
+                .set("y", em(1).to_string()),
         )
         .add(
             Text::new(status)
                 .set("x", label_box_width + SPACER)
-                .set("y", em(2).to_string()),
+                .set("y", em(1).to_string()),
         );
 
     let style = css_style::style()
-        .and_size(|conf| conf.width(px(150)))
+        .and_size(|conf| conf.width(em(5)))
+        .and_border(|conf| conf.radius(px(20)))
         .and_font(|conf| conf.size(px(FONT_SIZE)));
 
     let style = format!(r#"svg {{{}}}"#, style);
