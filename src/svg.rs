@@ -1,10 +1,12 @@
 use ab_glyph::{Font, FontRef};
+use css_style::Style;
 // use css_style;
 use fontdb;
 use std::collections::HashMap;
 use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
+use svg::node::element::tag::Style;
 use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
@@ -123,8 +125,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Create boilerplate svg shell
     let mut document = Document::new()
-        .set("width", scale * width as f64 / 10.0)
-        .set("height", scale * 20.0)
         .set("viewBox", format!("0 0 {} 200", width))
         .set("xmlns", "http://www.w3.org/2000/svg")
         .set("role", "img") // The badge is functionally an image
@@ -136,6 +136,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Add title
     document = document.add(Title::new("").add(TextNode::new(accessible_text)));
+
+    // Add styling
+    document = document.add(svg::node::element::Style::new(""));
 
     // Add icon if present
     if let Some(icon) = options.icon {
