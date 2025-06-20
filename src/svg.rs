@@ -1,5 +1,5 @@
 use ab_glyph::{Font, FontRef};
-use css_style::unit::{em, ex, px};
+use css_style::unit::{Ch, ch, em, ex, px};
 use css_style::{Style, color};
 // use css_style;
 use fontdb;
@@ -11,8 +11,6 @@ use svg::node::element::tag::Style;
 use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
-
-const FONT_SIZE: f32 = 80.0;
 
 use crate::colors::COLORS;
 
@@ -109,6 +107,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
 
+    let label_chars = label.chars().count() as f32 * 0.39;
+    let status_chars = status.chars().count() as f32 * 0.39;
+
+    println!("{}  {}", label_chars, status_chars);
+
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
     } else {
@@ -118,17 +121,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     const SPACER: f32 = 10.0;
 
     // We're not worrying about height here because it's largely constant.
-    let label_width = calc_width(&label, FONT_SIZE)?;
-    let status_width = calc_width(&status, FONT_SIZE)?;
-    let label_box_width = label_width + SPACER + icon_span_width; // The container for the label final width
-    let status_box_width = status_width + SPACER; // The container for the status final width
-    let width = label_box_width + status_box_width; // The TOTAL width of both
 
     let accessible_text = create_accessible_text(&label, &status);
 
     // Create boilerplate svg shell
     let mut document = Document::new()
-        .set("viewBox", format!("0 25 {} 70", width))
         .set("xmlns", "http://www.w3.org/2000/svg")
         .set("role", "img") // The badge is functionally an image
         .set("aria-label", accessible_text.clone()); // We label it the status..
@@ -155,14 +152,14 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
-                .set("width", em(2.1).to_string())
+                .set("width", em(label_chars * 1.1).to_string())
                 .set("height", em(1.2).to_string()),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
-                .set("x", em(2.1).to_string())
-                .set("width", em(1).to_string())
+                .set("x", em(label_chars * 1.1).to_string())
+                .set("width", em(status_chars).to_string())
                 .set("height", em(1.2).to_string()),
         );
 
@@ -176,20 +173,19 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     text_group = text_group
         .add(
-            Text::new(label)
+            Text::new(&label)
                 .set("x", label_text_begin)
                 .set("y", em(1).to_string()),
         )
         .add(
-            Text::new(status)
-                .set("x", em(2.2).to_string())
+            Text::new(&status)
+                .set("x", em(label_chars * 1.2).to_string())
                 .set("y", em(1).to_string()),
         );
 
     let style = css_style::style()
-        .and_size(|conf| conf.width(em(5)))
-        .and_border(|conf| conf.radius(px(20)))
-        .and_font(|conf| conf.size(px(FONT_SIZE)));
+        .and_size(|conf| conf.max_width(em((label_chars + status_chars) * 1.4)))
+        .and_border(|conf| conf.radius(px(20)));
 
     let style = format!(r#"svg {{{}}}"#, style);
 
@@ -218,7 +214,7 @@ pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let scale = options.scale.unwrap_or(1.0);
 
-    let st_text_width = calc_width(&options.status, FONT_SIZE)?;
+    let st_text_width = calc_width(&options.status, 0.0)?;
     let st_rect_width = st_text_width + 115.0;
 
     let sanitized_status = &options.status;
