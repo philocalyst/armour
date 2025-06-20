@@ -1,4 +1,5 @@
 use ab_glyph::{Font, FontRef};
+use css_style::unit::px;
 use css_style::{Style, color};
 // use css_style;
 use fontdb;
@@ -183,9 +184,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("y", 40),
         );
 
-    let style = css_style::style().insert("fill", "beige");
+    let style = css_style::style().and_size(|conf| conf.width(px(150)));
 
-    let style = format!(r#"g {{{}}}"#, style);
+    let style = format!(r#"svg {{{}}}"#, style);
 
     // Add styling
     document = document.add(svg::node::element::Style::new(style));
