@@ -141,7 +141,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     if let Some(icon) = options.icon {
         let image = Image::new()
             .set("x", 0)
-            .set("y", 0)
+            .set("y", 40)
             .set("width", icon_width)
             .set("xlink:href", icon);
 
@@ -163,13 +163,13 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Text::new(label)
                 .set("x", label_text_begin)
-                .set("y", 0)
+                .set("y", 40)
                 .set("textLength", label_box_width),
         )
         .add(
             Text::new(status)
                 .set("x", label_box_width + SPACER)
-                .set("y", 0)
+                .set("y", 40)
                 .set("textLength", status_box_width),
         );
 
