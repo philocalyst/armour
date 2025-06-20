@@ -138,7 +138,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     }
 
     // Add title
-    document = document.add(Title::new("").add(TextNode::new(accessible_text)));
+    document = document.add(Title::new(accessible_text));
 
     // Add icon if present
     if let Some(icon) = options.icon {
