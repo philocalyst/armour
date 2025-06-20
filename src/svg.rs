@@ -12,6 +12,8 @@ use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
 
+const FONT_SIZE: f32 = 10.0;
+
 use crate::colors::COLORS;
 
 #[derive(Clone)]
@@ -30,7 +32,7 @@ pub struct BadgerOptions {
 }
 
 // Placeholder for text width calculation
-fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
+fn calc_width(text: &str, size: f32) -> Result<f32, Box<dyn Error>> {
     let font = FontRef::try_from_slice(include_bytes!(
         "../fonts/liberation_mono/LiberationMono-Regular.ttf" // "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
     ))?;
@@ -43,7 +45,7 @@ fn calc_width(text: &str) -> Result<f32, Box<dyn Error>> {
         .into_iter()
         .map(|c| {
             // TODO: Allow font size to be configurable
-            let glyph = font.glyph_id(c).with_scale(30.0);
+            let glyph = font.glyph_id(c).with_scale(size);
 
             // Getting the outline of the precise glyph rather than just its bounding box
             let outline = font.outline_glyph(glyph).unwrap();
@@ -116,8 +118,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     const SPACER: f32 = 10.0;
 
     // We're not worrying about height here because it's largely constant.
-    let label_width = calc_width(&label)?;
-    let status_width = calc_width(&status)?;
+    let label_width = calc_width(&label, FONT_SIZE)?;
+    let status_width = calc_width(&status, FONT_SIZE)?;
     let label_box_width = label_width + SPACER + icon_span_width; // The container for the label final width
     let status_box_width = status_width + SPACER; // The container for the status final width
     let width = label_box_width + status_box_width; // The TOTAL width of both
@@ -184,7 +186,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("y", 40),
         );
 
-    let style = css_style::style().and_size(|conf| conf.width(px(150)));
+    let style = css_style::style()
+        .and_size(|conf| conf.width(px(150)))
+        .and_font(|conf| conf.size(px(FONT_SIZE)));
 
     let style = format!(r#"svg {{{}}}"#, style);
 
@@ -213,7 +217,7 @@ pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let scale = options.scale.unwrap_or(1.0);
 
-    let st_text_width = calc_width(&options.status)?;
+    let st_text_width = calc_width(&options.status, FONT_SIZE)?;
     let st_rect_width = st_text_width + 115.0;
 
     let sanitized_status = &options.status;
