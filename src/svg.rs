@@ -173,12 +173,14 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("textLength", status_box_width),
         );
 
-    let style = css_style::style().and_background(|conf| conf.color(color::named::BLANCHEDALMOND));
+    let style = css_style::style()
+        .and_background(|conf| conf.color(color::named::BLANCHEDALMOND))
+        .and_text(|conf| conf.color(color::named::BEIGE));
 
-    println!("{}", style);
+    let style = format!(r#"g[aria-hidden="true"] {{{}}}"#, style);
 
     // Add styling
-    document = document.add(svg::node::element::Style::new(""));
+    document = document.add(svg::node::element::Style::new(style));
 
     document = document.add(text_group);
 
