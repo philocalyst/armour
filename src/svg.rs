@@ -103,7 +103,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let icon_width = 30.0; // How large an icon is (the height will be capped though)
     let scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
-    let label_starting_position = icon_width + icon_right_margin; // Text comes right after the icon
 
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
@@ -111,14 +110,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         0.0 // No icon no problem
     };
 
-    // Handle the starting position with an icon
-    let status_text_begin = if options.icon.is_some() {
-        icon_span_width + label_starting_position
-    } else {
-        label_starting_position
-    };
-
-    const SPACER: f32 = 100.0;
+    const SPACER: f32 = 10.0;
 
     // We're not worrying about height here because it's largely constant.
     let label_width = calc_width(&label)?;
@@ -148,8 +140,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     // Add icon if present
     if let Some(icon) = options.icon {
         let image = Image::new()
-            .set("x", 40)
-            .set("y", 35)
+            .set("x", 0)
+            .set("y", 0)
             .set("width", icon_width)
             .set("xlink:href", icon);
 
@@ -181,22 +173,21 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .set("font-family", "Verdana,DejaVu Sans,sans-serif")
         .set("font-size", "110");
 
+    // Handle the starting position with an icon
+    let label_text_begin = icon_span_width;
+
     text_group = text_group
         .add(
-            Text::new("")
-                .set("x", label_box_width + 55.0)
-                .set("y", 148)
-                .set("textLength", status_box_width)
-                .set("fill", "#000")
-                .set("opacity", "0.1")
-                .add(TextNode::new(status.clone())),
+            Text::new(label)
+                .set("x", label_text_begin)
+                .set("y", 0)
+                .set("textLength", label_box_width),
         )
         .add(
-            Text::new("")
-                .set("x", label_box_width + 45.0)
-                .set("y", 138)
-                .set("textLength", status_box_width)
-                .add(TextNode::new(status)),
+            Text::new(status)
+                .set("x", label_box_width + SPACER)
+                .set("y", 0)
+                .set("textLength", status_box_width),
         );
 
     document = document.add(text_group);
