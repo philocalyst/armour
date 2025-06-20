@@ -92,15 +92,15 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let color_presets = &COLORS;
 
-    let status_color = options
+    let status_background_color = options
         .label_color
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"black"); // Fallback color is black
 
-    let label_color = options
+    let label_background_color = options
         .status_color
         .and_then(|c| color_presets.get(c.as_str()))
-        .unwrap_or(&"white"); // Fallback color is white
+        .unwrap_or(&"black"); // Fallback color is white
 
     let icon_width = 30.0; // How large an icon is (the height will be capped though)
     let scale = options.scale.unwrap_or(1.0);
