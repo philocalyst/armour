@@ -1,5 +1,5 @@
 use ab_glyph::{Font, FontRef};
-use css_style::unit::{ex, px};
+use css_style::unit::{em, ex, px};
 use css_style::{Style, color};
 // use css_style;
 use fontdb;
@@ -12,7 +12,7 @@ use svg::node::element::{
     Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
 };
 
-const FONT_SIZE: f32 = 10.0;
+const FONT_SIZE: f32 = 80.0;
 
 use crate::colors::COLORS;
 
@@ -156,16 +156,16 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
                 .set("width", label_box_width)
-                .set("y", 30.0)
-                .set("height", ex(2.7).to_string()),
+                .set("y", em(1).to_string())
+                .set("height", em(1.2).to_string()),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
                 .set("x", label_box_width)
-                .set("y", 30.0)
+                .set("y", em(1).to_string())
                 .set("width", status_box_width)
-                .set("height", ex(2.7).to_string()),
+                .set("height", em(1.2).to_string()),
         );
 
     document = document.add(bg_group);
@@ -177,11 +177,15 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let label_text_begin = icon_span_width;
 
     text_group = text_group
-        .add(Text::new(label).set("x", label_text_begin).set("y", 40))
+        .add(
+            Text::new(label)
+                .set("x", label_text_begin)
+                .set("y", em(2).to_string()),
+        )
         .add(
             Text::new(status)
                 .set("x", label_box_width + SPACER)
-                .set("y", 40),
+                .set("y", em(2).to_string()),
         );
 
     let style = css_style::style()
