@@ -1,5 +1,5 @@
 use ab_glyph::{Font, FontRef};
-use css_style::unit::px;
+use css_style::unit::{ex, px};
 use css_style::{Style, color};
 // use css_style;
 use fontdb;
@@ -156,24 +156,22 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
                 .set("width", label_box_width)
-                .set("height", 200),
+                .set("y", 30.0)
+                .set("height", ex(2.7).to_string()),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
                 .set("x", label_box_width)
+                .set("y", 30.0)
                 .set("width", status_box_width)
-                .set("height", 200),
+                .set("height", ex(2.7).to_string()),
         );
 
     document = document.add(bg_group);
 
     // Text group
-    let mut text_group = Group::new()
-        .set("fill", "#fff")
-        .set("text-anchor", "start")
-        .set("font-family", "Verdana,DejaVu Sans,sans-serif")
-        .set("font-size", "20");
+    let mut text_group = Group::new().set("fill", "#fff").set("text-anchor", "start");
 
     // Handle the starting position with an icon
     let label_text_begin = icon_span_width;
