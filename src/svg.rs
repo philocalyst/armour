@@ -85,8 +85,10 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
 
-    let label_chars = label.chars().count() as f32 * 0.39;
-    let status_chars = status.chars().count() as f32 * 0.39;
+    use unicode_segmentation::UnicodeSegmentation;
+
+    let label_chars = UnicodeSegmentation::graphemes(label.as_str(), true).count() as f32 * 0.77;
+    let status_chars = UnicodeSegmentation::graphemes(status.as_str(), true).count() as f32 * 0.77;
 
     println!("{}  {}", label_chars, status_chars);
 
