@@ -8,6 +8,8 @@ use svg::node::element::{Group, Image, Rectangle, Text, Title};
 
 use crate::colors::COLORS;
 
+const SIZE: f32 = 20.0;
+
 #[derive(Clone)]
 
 pub struct BadgerOptions {
@@ -33,12 +35,13 @@ fn calc_width(text: &str, size: f32) -> Result<f32, Box<dyn Error>> {
         .into_iter()
         .map(|c| {
             // TODO: Allow font size to be configurable
-            let glyph = font.glyph_id(c).with_scale(size);
+            let glyph = font.glyph_id(c).with_scale(SIZE);
 
             // Getting the outline of the precise glyph rather than just its bounding box
             let outline = font.outline_glyph(glyph).unwrap();
 
-            outline.px_bounds().width()
+            // Take the width of the glyph and use it to estimate the relative em
+            outline.px_bounds().width() * 0.07935
         })
         .sum())
 }
@@ -87,8 +90,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     use unicode_segmentation::UnicodeSegmentation;
 
-    let label_chars = UnicodeSegmentation::graphemes(label.as_str(), true).count() as f32 * 0.77;
-    let status_chars = UnicodeSegmentation::graphemes(status.as_str(), true).count() as f32 * 0.77;
+    let label_chars = calc_width(&label, SIZE)?;
+    let status_chars = calc_width(&status, SIZE)?;
 
     println!("{}  {}", label_chars, status_chars);
 
