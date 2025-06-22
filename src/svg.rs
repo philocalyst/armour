@@ -159,12 +159,13 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         )
         .add(
             Text::new(&status)
-                .set("x", em(label_chars * 1.2).to_string())
+                .set("x", em(label_chars * 1.15).to_string())
                 .set("y", em(1).to_string()),
         );
 
     let style = css_style::style()
         .and_size(|conf| conf.max_width(em((label_chars + status_chars) * 1.4)))
+        .and_font(|conf| conf.family("Helvetica"))
         .and_border(|conf| conf.radius(px(20)));
 
     let style = format!(r#"svg {{{}}}"#, style);
