@@ -1,5 +1,6 @@
 use ab_glyph::{Font, FontRef};
 use css_style::unit::{em, px};
+use rustybuzz::{Direction, Face, Language, Script, UnicodeBuffer};
 // use css_style;
 use std::error::Error;
 use svg::Document;
@@ -23,25 +24,27 @@ pub struct BadgerOptions {
 
 // Placeholder for text width calculation
 fn calc_width(text: &str, size: f32) -> Result<f32, Box<dyn Error>> {
-    let font = FontRef::try_from_slice(include_bytes!(
-        "../fonts/liberation_mono/LiberationMono-Regular.ttf" // "/Users/philocalyst/Library/Fonts/HackNerdFont-Regular.ttf"
-    ))?;
+    let font_data = include_bytes!("/System/Library/Fonts/Times.ttc");
 
-    // Get the total width of the entire string
-    // We don't need to worry about newlines here because they
-    // SHOULDNT EXIST
-    Ok(text
-        .chars()
-        .into_iter()
-        .map(|c| {
-            // TODO: Allow font size to be configurable
-            let glyph = font.glyph_id(c).with_scale(SIZE);
+    let face = Face::from_slice(font_data, 0).unwrap();
 
-            // Getting the outline of the precise glyph rather than just its bounding box
-            let outline = font.outline_glyph(glyph).unwrap();
+    let mut buffer = UnicodeBuffer::new();
+    buffer.push_str(text);
+    buffer.set_direction(Direction::LeftToRight);
+    buffer.set_language("en".parse()?);
+
+    let output = rustybuzz::shape(&face, &[], buffer);
+    let glyph_positions = output.glyph_positions();
+
+    Ok(glyph_positions
+        .iter()
+        .map(|pos| {
+            let width = pos.x_advance as f32 / 64.0;
+
+            println!("{width}");
 
             // Take the width of the glyph and use it to estimate the relative em
-            outline.px_bounds().width() * 0.07935
+            width * 0.0295
         })
         .sum())
 }
@@ -92,8 +95,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let label_chars = calc_width(&label, SIZE)?;
     let status_chars = calc_width(&status, SIZE)?;
-
-    println!("{}  {}", label_chars, status_chars);
 
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
