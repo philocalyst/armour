@@ -1,24 +1,14 @@
 use ab_glyph::{Font, FontRef};
-use css_style::unit::{Ch, ch, em, ex, px};
-use css_style::{Style, color};
+use css_style::unit::{em, px};
 // use css_style;
-use fontdb;
-use std::collections::HashMap;
 use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
-use svg::node::element::tag::Style;
-use svg::node::element::{
-    Definitions, Group, Image, LinearGradient, Mask, Rectangle, Stop, Text, Title,
-};
+use svg::node::element::{Group, Image, Rectangle, Text, Title};
 
 use crate::colors::COLORS;
 
 #[derive(Clone)]
-pub enum StyleOption {
-    Flat,
-    Classic,
-}
 
 pub struct BadgerOptions {
     pub status: String,               // The "right side" of the k/v THIS IS NEEDED!!
@@ -51,18 +41,6 @@ fn calc_width(text: &str, size: f32) -> Result<f32, Box<dyn Error>> {
             outline.px_bounds().width()
         })
         .sum())
-}
-
-fn generate_random_id(length: usize) -> String {
-    use rand::Rng;
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    let mut rng = rand::thread_rng();
-    (0..length)
-        .map(|_| {
-            let idx = rng.gen_range(0..CHARS.len());
-            CHARS[idx] as char
-        })
-        .collect()
 }
 
 fn create_accessible_text(label: &str, status: &str) -> String {
