@@ -290,7 +290,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     )?;
     let (status_paths, status_end) = text_to_svg_paths(
         &status,
-        status_text_begin + 5.0,
+        label_end + 5.0,
         TEXT_HEIGHT * 0.8,
         TEXT_HEIGHT,
         "#fff",
@@ -312,7 +312,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         );
 
     document = document.add(bg_group);
-
     document = document.add(label_paths).add(status_paths);
 
     // Styling
