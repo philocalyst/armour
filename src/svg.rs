@@ -147,7 +147,7 @@ fn text_to_svg_paths(
     y: f32, // Baseline y-position
     size: f32,
     fill_color: &str,
-) -> Result<Group, Box<dyn Error>> {
+) -> Result<(Group, f32), Box<dyn Error>> {
     let font_data = include_bytes!("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
     let face = Face::from_slice(font_data, 0).ok_or("Failed to parse font")?;
 
@@ -190,7 +190,7 @@ fn text_to_svg_paths(
         cursor_x += pos.x_advance as f32 * scale;
     }
 
-    Ok(text_group)
+    Ok((text_group, cursor_x))
 }
 
 fn create_accessible_text(label: &str, status: &str) -> String {
@@ -281,37 +281,37 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let label_width = label_text_width + icon_span_width + MARGIN_SMALL;
     let status_width = status_text_width + MARGIN_SMALL;
 
-    let bg_group = Group::new()
-        .add(
-            Rectangle::new()
-                .set("fill", label_background_color.to_string())
-                .set("width", label_width) // Margin to space out the distance between this and the edges
-                .set("height", (TEXT_HEIGHT * 1.2) as i32),
-        )
-        .add(
-            Rectangle::new()
-                .set("fill", status_background_color.to_string())
-                .set("x", label_width)
-                .set("width", status_width)
-                .set("height", (TEXT_HEIGHT * 1.2) as i32),
-        );
-
-    document = document.add(bg_group);
-
-    let label_paths = text_to_svg_paths(
+    let (label_paths, label_end) = text_to_svg_paths(
         &label,
         label_text_begin + 5.0,
         TEXT_HEIGHT * 0.8,
         TEXT_HEIGHT,
         "#fff",
     )?;
-    let status_paths = text_to_svg_paths(
+    let (status_paths, status_end) = text_to_svg_paths(
         &status,
         status_text_begin + 5.0,
         TEXT_HEIGHT * 0.8,
         TEXT_HEIGHT,
         "#fff",
     )?;
+
+    let bg_group = Group::new()
+        .add(
+            Rectangle::new()
+                .set("fill", label_background_color.to_string())
+                .set("width", label_end) // Margin to space out the distance between this and the edges
+                .set("height", (TEXT_HEIGHT * 1.2) as i32),
+        )
+        .add(
+            Rectangle::new()
+                .set("fill", status_background_color.to_string())
+                .set("x", label_end)
+                .set("width", status_end)
+                .set("height", (TEXT_HEIGHT * 1.2) as i32),
+        );
+
+    document = document.add(bg_group);
 
     document = document.add(label_paths).add(status_paths);
 
