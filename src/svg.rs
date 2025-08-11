@@ -248,9 +248,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
-    let spacer: f32 = FONT_SIZE * 0.3;
+    let spacer: f32 = FONT_SIZE * 0.2;
 
     let label_start = icon_span_width + spacer;
+
+    let baseline = height * 0.80;
 
     let (label_paths, label_end) =
         text_to_svg_paths(&label, label_start, FONT_SIZE * 0.98, FONT_SIZE, "#fff")?;
