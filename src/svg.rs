@@ -261,7 +261,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let mask_id = "corner-mask";
 
-    let bg_group = Group::new()
+    let mut bg_group = Group::new()
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
@@ -274,30 +274,30 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("x", label_width) // Start where label ends
                 .set("width", status_width)
                 .set("height", (FONT_SIZE * 1.2) as i32),
-        )
-        .set("mask", format!("url(#{})", mask_id));
+        );
 
-    let corner_mask = Mask::new().add(
+    let corner_mask = Mask::new().set("id", mask_id).add(
         Rectangle::new()
-            .set("id", mask_id)
             .set("fill", "white")
-            .set("width", status_end + (spacer / 2.0))
-            .set("rx", 10)
-            .set("ry", 10)
+            .set("width", label_width + status_width)
+            .set("rx", 5)
+            .set("ry", 5)
             .set("height", (FONT_SIZE * 1.2) as i32),
     );
 
     let mut defs = Definitions::new();
     defs = defs.add(corner_mask);
 
+    // bg_group = bg_group.set("mask", format!("url(#{})", mask_id));
     document = document.add(defs);
+    document = document.add(bg_group);
     document = document.add(label_paths).add(status_paths);
 
     // Styling
     let total_width = status_end + (spacer / 2.0);
     let style = css_style::style()
         .and_size(|conf| conf.max_width(px(total_width as i32)))
-        .and_border(|conf| conf.radius(px(20)));
+        .and_border(|conf| conf.radius(px(10)));
 
     let style = format!(r#"svg {{{}}}"#, style);
     document = document.add(svg::node::element::Style::new(style));
