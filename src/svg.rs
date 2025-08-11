@@ -214,6 +214,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let icon_width = 30.0; // How large an icon is (the height will be capped though)
     let _scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
+    let height = FONT_SIZE * 1.2;
 
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
@@ -247,7 +248,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
-    let spacer: f32 = FONT_SIZE * 0.5;
+    let spacer: f32 = FONT_SIZE * 0.3;
 
     let label_start = icon_span_width + spacer;
 
@@ -266,26 +267,23 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
                 .set("width", label_width)
-                .set("height", (FONT_SIZE * 1.2) as i32),
+                .set("height", height),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
                 .set("x", label_width) // Start where label ends
                 .set("width", status_width + spacer)
-                .set("height", (FONT_SIZE * 1.2) as i32),
+                .set("height", height),
         );
 
     let total_width: f32 = label_width + status_width + spacer;
 
     let total_width_normalized = total_width / 16.0;
-    let height_normalized = (FONT_SIZE * 1.2) / 16.0;
+    let height_normalized = height / 16.0;
 
     document = document.add(bg_group);
-    document = document.set(
-        "viewBox",
-        format!("0 0 {} {}", total_width, (FONT_SIZE * 1.2)),
-    );
+    document = document.set("viewBox", format!("0 0 {total_width} {height}"));
     document = document.add(label_paths).add(status_paths);
 
     // Styling
