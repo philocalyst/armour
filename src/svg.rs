@@ -13,7 +13,7 @@ use lyon::path::Event;
 use lyon::path::{Path as LyonPath, builder::*};
 use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 
-const SIZE: f32 = 20.0;
+const TEXT_HEIGHT: f32 = 20.0;
 
 #[derive(Clone)]
 
@@ -235,8 +235,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let _scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
 
-    let label_width = calc_width(&label, SIZE)?;
-    let status_width = calc_width(&status, SIZE)?;
+    let label_text_width = calc_width(&label, TEXT_HEIGHT)?;
+    let status_text_width = calc_width(&status, TEXT_HEIGHT)?;
 
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
@@ -272,38 +272,51 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
+    // We're putting the label right after the icon_span
+    let label_text_begin: f32 = icon_span_width;
+    let status_text_begin: f32 = label_text_begin + label_text_width;
+
+    const MARGIN_SMALL: f32 = 10.0;
+
+    let label_width = label_text_width + icon_span_width + MARGIN_SMALL;
+    let status_width = status_text_width + MARGIN_SMALL;
+
     let bg_group = Group::new()
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
-                .set(
-                    "width",
-                    (label_width * 10.0 + icon_span_width + 10.0) as i32,
-                ) // Scale up
-                .set("height", (SIZE * 1.2) as i32),
+                .set("width", label_width) // Margin to space out the distance between this and the edges
+                .set("height", (TEXT_HEIGHT * 1.2) as i32),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
-                .set("x", (label_width * 10.0 + icon_span_width + 10.0) as i32)
-                .set("width", (status_width * 10.0 + 10.0) as i32) // Scale up
-                .set("height", (SIZE * 1.2) as i32),
+                .set("x", label_width)
+                .set("width", status_width)
+                .set("height", (TEXT_HEIGHT * 1.2) as i32),
         );
 
     document = document.add(bg_group);
 
-    // Replace text nodes with paths
-    let label_text_begin = icon_span_width;
-
-    let status_x = label_width * 1.15 + icon_span_width;
-
-    let label_paths = text_to_svg_paths(&label, label_text_begin + 5.0, SIZE * 0.8, SIZE, "#fff")?;
-    let status_paths = text_to_svg_paths(&status, status_x + 5.0, SIZE * 0.8, SIZE, "#fff")?;
+    let label_paths = text_to_svg_paths(
+        &label,
+        label_text_begin + 5.0,
+        TEXT_HEIGHT * 0.8,
+        TEXT_HEIGHT,
+        "#fff",
+    )?;
+    let status_paths = text_to_svg_paths(
+        &status,
+        status_text_begin + 5.0,
+        TEXT_HEIGHT * 0.8,
+        TEXT_HEIGHT,
+        "#fff",
+    )?;
 
     document = document.add(label_paths).add(status_paths);
 
-    // Styling (updated to not rely on font-family)
-    let total_width = icon_span_width + label_width * 1.1 + status_width + SPACER;
+    // Styling
+    let total_width = icon_span_width + label_text_width * 1.1 + status_width + SPACER;
     let style = css_style::style()
         .and_size(|conf| conf.max_width(px(total_width as i32)))
         .and_border(|conf| conf.radius(px(20)));
