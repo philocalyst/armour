@@ -187,12 +187,12 @@ fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
     let morphology = FilterEffectMorphology::new()
         .set("in", "SourceAlpha".to_string())
         .set("operator", "dilate")
-        .set("radius", 0.51)
+        .set("radius", 0.31)
         .set("result", "dilated".to_string());
 
     // feFlood: Create the outlne color
     let flood = FilterEffectFlood::new()
-        .set("color", "#DA1813")
+        .set("flood-color", "#DA1813")
         .set("result", "outlineColor".to_string());
 
     // feComposite: Combine the flood color with the dilated shape
@@ -299,7 +299,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let status_start = label_end + spacer;
     let (status_paths, status_end) =
-        text_to_svg_paths(&status, status_start, baseline, FONT_SIZE, "#000000")?;
+        text_to_svg_paths(&status, status_start, baseline, FONT_SIZE, "#fff")?;
 
     let label_width = label_end + (spacer / 2.0);
     let status_width = status_end - status_start + (spacer / 2.0);
@@ -323,6 +323,10 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     let total_width_normalized = total_width / 16.0;
     let height_normalized = height / 16.0;
+
+    let text_outline = create_text_outline()?;
+    let defs = Definitions::new().add(text_outline);
+    document = document.add(defs);
 
     document = document.add(bg_group);
     document = document.set("viewBox", format!("0 0 {total_width} {height}"));
