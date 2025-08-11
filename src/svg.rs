@@ -6,7 +6,9 @@ use crate::colors::COLORS;
 use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
-use svg::node::element::{Group, Image, Path as SvgPath, Rectangle, Text, Title};
+use svg::node::element::{
+    Definitions, Group, Image, Mask, Path as SvgPath, Rectangle, Text, Title,
+};
 
 use lyon::math::{Point, point};
 use lyon::path::Event;
@@ -257,6 +259,8 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let label_width = label_end + (spacer / 2.0);
     let status_width = status_end - status_start + (spacer / 2.0);
 
+    let mask_id = "corner-mask";
+
     let bg_group = Group::new()
         .add(
             Rectangle::new()
@@ -270,9 +274,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
                 .set("x", label_width) // Start where label ends
                 .set("width", status_width)
                 .set("height", (FONT_SIZE * 1.2) as i32),
-        );
+        )
+        .set("mask", format!("url(#{})", mask_id));
 
-    document = document.add(bg_group);
     let corner_mask = Mask::new().add(
         Rectangle::new()
             .set("id", mask_id)
@@ -283,6 +287,10 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             .set("height", (FONT_SIZE * 1.2) as i32),
     );
 
+    let mut defs = Definitions::new();
+    defs = defs.add(corner_mask);
+
+    document = document.add(defs);
     document = document.add(label_paths).add(status_paths);
 
     // Styling
