@@ -7,7 +7,10 @@ edition = "2024"
 ab_glyph = "0.2.29"
 css-style = "0.14.1"
 fontdb = "0.23.0"
-mlua                = { version = "0.10.5", features = [ "anyhow", "async", "error-send", "lua54", "macros", "serialize" ] }
+lyon = "1.0.1"
 phf = { version = "0.11.3", features = ["macros"] }
 rand = "0.9.1"
+rustybuzz = "0.20.1"
 svg = "0.18.0"
+ttf-parser = "0.25.1"
+unicode-segmentation = "1.12.0"
