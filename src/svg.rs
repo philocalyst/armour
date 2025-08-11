@@ -268,14 +268,14 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     }
 
     let (label_paths, label_end) =
-        text_to_svg_paths(&label, icon_span_width, FONT_SIZE * 0.8, FONT_SIZE, "#fff")?;
+        text_to_svg_paths(&label, icon_span_width, FONT_SIZE * 0.98, FONT_SIZE, "#fff")?;
 
     let spacer = label_end * 0.1;
 
     let (status_paths, status_end) = text_to_svg_paths(
         &status,
         label_end + spacer,
-        FONT_SIZE * 0.8,
+        FONT_SIZE * 0.98,
         FONT_SIZE,
         "#fff",
     )?;
@@ -299,7 +299,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     document = document.add(label_paths).add(status_paths);
 
     // Styling
-    let total_width = status_end + spacer;
+    let total_width = status_end + (spacer / 2.0);
     let style = css_style::style()
         .and_size(|conf| conf.max_width(px(total_width as i32)))
         .and_border(|conf| conf.radius(px(20)));
