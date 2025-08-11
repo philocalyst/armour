@@ -33,14 +33,16 @@ fn calc_width(text: &str, size: f32) -> Result<f32, Box<dyn Error>> {
     let mut buffer = UnicodeBuffer::new();
     buffer.push_str(text);
     buffer.set_direction(Direction::LeftToRight);
-    buffer.set_script(script::LATIN); // Adjust if needed for other scripts
+    buffer.set_script(script::LATIN);
 
     let output = rustybuzz::shape(&face, &[], buffer);
     let glyph_positions = output.glyph_positions();
 
     let mut total_width = 0.0;
     for pos in glyph_positions {
-        total_width += (pos.x_advance as f32 / 64.0) * (size / face.units_per_em() as f32);
+        let width = pos.x_advance as f32 / 64.0;
+        // Apply the original scaling factor
+        total_width += width * 0.0295 * (size / 10.0); // Adjust scaling
     }
 
     Ok(total_width)
@@ -274,25 +276,29 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
-                .set("width", label_width * 1.1 + icon_span_width) // Adjusted for icon
-                .set("height", SIZE * 1.2),
+                .set(
+                    "width",
+                    (label_width * 10.0 + icon_span_width + 10.0) as i32,
+                ) // Scale up
+                .set("height", (SIZE * 1.2) as i32),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
-                .set("x", label_width * 1.1 + icon_span_width)
-                .set("width", status_width)
-                .set("height", SIZE * 1.2),
+                .set("x", (label_width * 10.0 + icon_span_width + 10.0) as i32)
+                .set("width", (status_width * 10.0 + 10.0) as i32) // Scale up
+                .set("height", (SIZE * 1.2) as i32),
         );
 
     document = document.add(bg_group);
 
     // Replace text nodes with paths
     let label_text_begin = icon_span_width;
-    let label_paths = text_to_svg_paths(&label, label_text_begin, 0f32, SIZE, "#fff")?; // y = SIZE for baseline
 
     let status_x = label_width * 1.15 + icon_span_width;
-    let status_paths = text_to_svg_paths(&status, status_x, 0f32, SIZE, "#fff")?;
+
+    let label_paths = text_to_svg_paths(&label, label_text_begin + 5.0, SIZE * 0.8, SIZE, "#fff")?;
+    let status_paths = text_to_svg_paths(&status, status_x + 5.0, SIZE * 0.8, SIZE, "#fff")?;
 
     document = document.add(label_paths).add(status_paths);
 
