@@ -247,10 +247,12 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
-    let (label_paths, label_end) =
-        text_to_svg_paths(&label, icon_span_width, FONT_SIZE * 0.98, FONT_SIZE, "#fff")?;
+    let spacer: f32 = FONT_SIZE * 0.5;
 
-    let spacer = FONT_SIZE * 0.5;
+    let label_start = icon_span_width + spacer;
+
+    let (label_paths, label_end) =
+        text_to_svg_paths(&label, label_start, FONT_SIZE * 0.98, FONT_SIZE, "#fff")?;
 
     let status_start = label_end + spacer;
     let (status_paths, status_end) =
@@ -270,19 +272,27 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
                 .set("x", label_width) // Start where label ends
-                .set("width", status_width)
+                .set("width", status_width + spacer)
                 .set("height", (FONT_SIZE * 1.2) as i32),
         );
 
+    let total_width: f32 = label_width + status_width + spacer;
+
+    let total_width_normalized = total_width / 16.0;
+    let height_normalized = (FONT_SIZE * 1.2) / 16.0;
+
     document = document.add(bg_group);
+    document = document.set(
+        "viewBox",
+        format!("0 0 {} {}", total_width, (FONT_SIZE * 1.2)),
+    );
     document = document.add(label_paths).add(status_paths);
 
     // Styling
-    let total_width = label_width + status_width;
     let style = css_style::style()
         .and_size(|conf| {
-            conf.height(px(FONT_SIZE * 1.2))
-                .width(px(total_width as i32))
+            conf.height(em(height_normalized))
+                .width(em(total_width_normalized))
         })
         .and_border(|conf| conf.radius(px(10)));
 
