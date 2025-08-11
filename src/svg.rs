@@ -13,7 +13,7 @@ use lyon::path::Event;
 use lyon::path::{Path as LyonPath, builder::*};
 use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 
-const TEXT_HEIGHT: f32 = 20.0;
+const FONT_SIZE: f32 = 20.0;
 
 #[derive(Clone)]
 
@@ -235,16 +235,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let _scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
 
-    let label_text_width = calc_width(&label, TEXT_HEIGHT)?;
-    let status_text_width = calc_width(&status, TEXT_HEIGHT)?;
-
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
     } else {
         0.0 // No icon no problem
     };
-
-    const SPACER: f32 = 10.0;
 
     let accessible_text = create_accessible_text(&label, &status);
 
@@ -272,27 +267,16 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
-    const MARGIN_SMALL: f32 = 5.0;
+    let (label_paths, label_end) =
+        text_to_svg_paths(&label, icon_span_width, FONT_SIZE * 0.8, FONT_SIZE, "#fff")?;
 
-    // We're putting the label right after the icon_span
-    let label_text_begin: f32 = icon_span_width + MARGIN_SMALL;
-    let status_text_begin: f32 = label_text_begin + label_text_width;
-
-    let spacer: f32 = label_text_begin * 0.1; // Get our relative spacer
-
-    let (label_paths, label_end) = text_to_svg_paths(
-        &label,
-        label_text_begin + spacer,
-        TEXT_HEIGHT * 0.8,
-        TEXT_HEIGHT,
-        "#fff",
-    )?;
+    let spacer = label_end * 0.1;
 
     let (status_paths, status_end) = text_to_svg_paths(
         &status,
         label_end + spacer,
-        TEXT_HEIGHT * 0.8,
-        TEXT_HEIGHT,
+        FONT_SIZE * 0.8,
+        FONT_SIZE,
         "#fff",
     )?;
 
@@ -300,15 +284,15 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
-                .set("width", label_end) // Margin to space out the distance between this and the edges
-                .set("height", (TEXT_HEIGHT * 1.2) as i32),
+                .set("width", label_end + (spacer / 2.0)) // Margin to space out the distance between this and the edges
+                .set("height", (FONT_SIZE * 1.2) as i32),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
                 .set("x", label_end + (spacer / 2.0)) // Halfway between the end of the label text
                 .set("width", status_end)
-                .set("height", (TEXT_HEIGHT * 1.2) as i32),
+                .set("height", (FONT_SIZE * 1.2) as i32),
         );
 
     document = document.add(bg_group);
