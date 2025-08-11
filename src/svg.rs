@@ -272,25 +272,25 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         document = document.add(image);
     }
 
+    const MARGIN_SMALL: f32 = 5.0;
+
     // We're putting the label right after the icon_span
-    let label_text_begin: f32 = icon_span_width;
+    let label_text_begin: f32 = icon_span_width + MARGIN_SMALL;
     let status_text_begin: f32 = label_text_begin + label_text_width;
 
-    const MARGIN_SMALL: f32 = 10.0;
-
-    let label_width = label_text_width + icon_span_width + MARGIN_SMALL;
-    let status_width = status_text_width + MARGIN_SMALL;
+    let spacer: f32 = label_text_begin * 0.1; // Get our relative spacer
 
     let (label_paths, label_end) = text_to_svg_paths(
         &label,
-        label_text_begin + 5.0,
+        label_text_begin + spacer,
         TEXT_HEIGHT * 0.8,
         TEXT_HEIGHT,
         "#fff",
     )?;
+
     let (status_paths, status_end) = text_to_svg_paths(
         &status,
-        label_end + 5.0,
+        label_end + spacer,
         TEXT_HEIGHT * 0.8,
         TEXT_HEIGHT,
         "#fff",
@@ -306,7 +306,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
-                .set("x", label_end)
+                .set("x", label_end + (spacer / 2.0)) // Halfway between the end of the label text
                 .set("width", status_end)
                 .set("height", (TEXT_HEIGHT * 1.2) as i32),
         );
@@ -315,7 +315,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     document = document.add(label_paths).add(status_paths);
 
     // Styling
-    let total_width = icon_span_width + label_text_width * 1.1 + status_width + SPACER;
+    let total_width = status_end + spacer;
     let style = css_style::style()
         .and_size(|conf| conf.max_width(px(total_width as i32)))
         .and_border(|conf| conf.radius(px(20)));
