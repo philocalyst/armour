@@ -1,13 +1,17 @@
-use ab_glyph::{Font, FontRef};
 use css_style::unit::{em, px};
-use rustybuzz::{Direction, Face, Language, Script, UnicodeBuffer};
+use rustybuzz::{Direction, Face, Language, Script, UnicodeBuffer, script};
+use ttf_parser::GlyphId;
 // use css_style;
+use crate::colors::COLORS;
 use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
-use svg::node::element::{Group, Image, Rectangle, Text, Title};
+use svg::node::element::{Group, Image, Path as SvgPath, Rectangle, Text, Title};
 
-use crate::colors::COLORS;
+use lyon::math::{Point, point};
+use lyon::path::Event;
+use lyon::path::{Path as LyonPath, builder::*};
+use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 
 const SIZE: f32 = 20.0;
 
@@ -22,31 +26,169 @@ pub struct BadgerOptions {
     pub scale: Option<f64>,           // The scale of the entire badge
 }
 
-// Placeholder for text width calculation
 fn calc_width(text: &str, size: f32) -> Result<f32, Box<dyn Error>> {
-    let font_data = include_bytes!("/System/Library/Fonts/Times.ttc");
-
-    let face = Face::from_slice(font_data, 0).unwrap();
+    let font_data = include_bytes!("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+    let face = Face::from_slice(font_data, 0).ok_or("Failed to parse font")?;
 
     let mut buffer = UnicodeBuffer::new();
     buffer.push_str(text);
     buffer.set_direction(Direction::LeftToRight);
-    buffer.set_language("en".parse()?);
+    buffer.set_script(script::LATIN); // Adjust if needed for other scripts
 
     let output = rustybuzz::shape(&face, &[], buffer);
     let glyph_positions = output.glyph_positions();
 
-    Ok(glyph_positions
-        .iter()
-        .map(|pos| {
-            let width = pos.x_advance as f32 / 64.0;
+    let mut total_width = 0.0;
+    for pos in glyph_positions {
+        total_width += (pos.x_advance as f32 / 64.0) * (size / face.units_per_em() as f32);
+    }
 
-            println!("{width}");
+    Ok(total_width)
+}
 
-            // Take the width of the glyph and use it to estimate the relative em
-            width * 0.0295
-        })
-        .sum())
+// Struct to implement ttf_parser's OutlineBuilder, building a lyon path
+struct LyonOutlineBuilder {
+    builder: lyon::path::Builder,
+    scale: f32,
+    x_offset: f32,
+    y_offset: f32,
+}
+
+impl LyonOutlineBuilder {
+    fn new(scale: f32, x_offset: f32, y_offset: f32) -> Self {
+        Self {
+            builder: LyonPath::builder(),
+            scale,
+            x_offset,
+            y_offset,
+        }
+    }
+
+    fn finish(self) -> LyonPath {
+        self.builder.build()
+    }
+
+    fn scaled_point(&self, x: f32, y: f32) -> Point {
+        // Scale and flip Y for SVG (glyph Y is positive up, SVG positive down)
+        point(
+            (x * self.scale) + self.x_offset,
+            (-y * self.scale) + self.y_offset, // Flip Y
+        )
+    }
+}
+
+impl TtfOutlineBuilder for LyonOutlineBuilder {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.builder.begin(self.scaled_point(x, y));
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.builder.line_to(self.scaled_point(x, y));
+    }
+
+    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+        self.builder
+            .quadratic_bezier_to(self.scaled_point(x1, y1), self.scaled_point(x, y));
+    }
+
+    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+        self.builder.cubic_bezier_to(
+            self.scaled_point(x1, y1),
+            self.scaled_point(x2, y2),
+            self.scaled_point(x, y),
+        );
+    }
+
+    fn close(&mut self) {
+        self.builder.close();
+    }
+}
+
+// Function to convert lyon Path to SVG 'd' string
+fn lyon_path_to_svg_d(path: &LyonPath) -> String {
+    let mut d = String::new();
+    for event in path {
+        match event {
+            Event::Begin { at } => d.push_str(&format!("M{:.2},{:.2}", at.x, at.y)),
+            Event::Line { from: _, to } => d.push_str(&format!("L{:.2},{:.2}", to.x, to.y)),
+            Event::Quadratic { from: _, ctrl, to } => d.push_str(&format!(
+                "Q{:.2},{:.2} {:.2},{:.2}",
+                ctrl.x, ctrl.y, to.x, to.y
+            )),
+            Event::Cubic {
+                from: _,
+                ctrl1,
+                ctrl2,
+                to,
+            } => d.push_str(&format!(
+                "C{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}",
+                ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, to.x, to.y
+            )),
+            Event::End {
+                last: _,
+                first: _,
+                close,
+            } => {
+                if close {
+                    d.push('Z');
+                }
+            }
+        }
+    }
+    d
+}
+
+// Core function: Convert text to SVG paths using shaping and outlining
+fn text_to_svg_paths(
+    text: &str,
+    x: f32,
+    y: f32, // Baseline y-position
+    size: f32,
+    fill_color: &str,
+) -> Result<Group, Box<dyn Error>> {
+    let font_data = include_bytes!("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+    let face = Face::from_slice(font_data, 0).ok_or("Failed to parse font")?;
+
+    let mut buffer = UnicodeBuffer::new();
+    buffer.push_str(text);
+    buffer.set_direction(Direction::LeftToRight);
+    buffer.set_script(script::LATIN); // Customize for script if needed
+
+    let output = rustybuzz::shape(&face, &[], buffer);
+    let glyph_infos = output.glyph_infos();
+    let glyph_positions = output.glyph_positions();
+
+    let units_per_em = face.units_per_em() as f32;
+    let scale = size / units_per_em;
+
+    let mut text_group = Group::new().set("fill", fill_color);
+
+    let mut cursor_x = x;
+
+    for (info, pos) in glyph_infos.iter().zip(glyph_positions.iter()) {
+        let glyph_id = GlyphId(info.glyph_id as u16);
+
+        let mut builder = LyonOutlineBuilder::new(
+            scale,
+            cursor_x + pos.x_offset as f32 * scale,
+            y + pos.y_offset as f32 * scale,
+        );
+
+        if face.outline_glyph(glyph_id, &mut builder).is_some() {
+            let path = builder.finish();
+            let path_data = lyon_path_to_svg_d(&path);
+
+            if !path_data.is_empty() {
+                let svg_path = SvgPath::new().set("d", path_data);
+                text_group = text_group.add(svg_path);
+            }
+        }
+
+        // Advance cursor
+        cursor_x += pos.x_advance as f32 * scale;
+    }
+
+    Ok(text_group)
 }
 
 fn create_accessible_text(label: &str, status: &str) -> String {
@@ -78,23 +220,21 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let color_presets = &COLORS;
 
     let status_background_color = options
-        .label_color
+        .status_color // Fixed: was label_color
         .and_then(|c| color_presets.get(c.as_str()))
-        .unwrap_or(&"blue"); // Fallback color is black
+        .unwrap_or(&"blue"); // Fallback color is blue (corrected from your code)
 
     let label_background_color = options
-        .status_color
+        .label_color // Fixed: was status_color
         .and_then(|c| color_presets.get(c.as_str()))
-        .unwrap_or(&"SLATEGRAY"); // Fallback color is white
+        .unwrap_or(&"SLATEGRAY"); // Fallback color is slate gray
 
     let icon_width = 30.0; // How large an icon is (the height will be capped though)
-    let scale = options.scale.unwrap_or(1.0);
+    let _scale = options.scale.unwrap_or(1.0);
     let icon_right_margin = 10.0;
 
-    use unicode_segmentation::UnicodeSegmentation;
-
-    let label_chars = calc_width(&label, SIZE)?;
-    let status_chars = calc_width(&status, SIZE)?;
+    let label_width = calc_width(&label, SIZE)?;
+    let status_width = calc_width(&status, SIZE)?;
 
     let icon_span_width = if options.icon.is_some() {
         icon_width + icon_right_margin // Icon width + some right margin
@@ -103,8 +243,6 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     };
 
     const SPACER: f32 = 10.0;
-
-    // We're not worrying about height here because it's largely constant.
 
     let accessible_text = create_accessible_text(&label, &status);
 
@@ -136,56 +274,43 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
-                .set("width", em(label_chars * 1.1).to_string())
-                .set("height", em(1.2).to_string()),
+                .set("width", label_width * 1.1 + icon_span_width) // Adjusted for icon
+                .set("height", SIZE * 1.2),
         )
         .add(
             Rectangle::new()
                 .set("fill", status_background_color.to_string())
-                .set("x", em(label_chars * 1.1).to_string())
-                .set("width", em(status_chars).to_string())
-                .set("height", em(1.2).to_string()),
+                .set("x", label_width * 1.1 + icon_span_width)
+                .set("width", status_width)
+                .set("height", SIZE * 1.2),
         );
 
     document = document.add(bg_group);
 
-    // Text group
-    let mut text_group = Group::new().set("fill", "#fff").set("text-anchor", "start");
-
-    // Handle the starting position with an icon
+    // Replace text nodes with paths
     let label_text_begin = icon_span_width;
+    let label_paths = text_to_svg_paths(&label, label_text_begin, 0f32, SIZE, "#fff")?; // y = SIZE for baseline
 
-    text_group = text_group
-        .add(
-            Text::new(&label)
-                .set("x", label_text_begin)
-                .set("y", em(1).to_string()),
-        )
-        .add(
-            Text::new(&status)
-                .set("x", em(label_chars * 1.15).to_string())
-                .set("y", em(1).to_string()),
-        );
+    let status_x = label_width * 1.15 + icon_span_width;
+    let status_paths = text_to_svg_paths(&status, status_x, 0f32, SIZE, "#fff")?;
 
+    document = document.add(label_paths).add(status_paths);
+
+    // Styling (updated to not rely on font-family)
+    let total_width = icon_span_width + label_width * 1.1 + status_width + SPACER;
     let style = css_style::style()
-        .and_size(|conf| conf.max_width(em((label_chars + status_chars) * 1.4)))
-        .and_font(|conf| conf.family("Helvetica"))
+        .and_size(|conf| conf.max_width(px(total_width as i32)))
         .and_border(|conf| conf.radius(px(20)));
 
     let style = format!(r#"svg {{{}}}"#, style);
-
-    // Add styling
     document = document.add(svg::node::element::Style::new(style));
 
-    document = document.add(text_group);
-
+    // For testing/output (unchanged)
     let output = format!("{:#}", document);
-
     let output = output.replace("\n", "");
-
     use std::fs;
+    fs::write("./test.svg", output)?;
 
-    fs::write("./test.svg", output);
     Ok(document)
 }
 
