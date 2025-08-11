@@ -273,6 +273,16 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         );
 
     document = document.add(bg_group);
+    let corner_mask = Mask::new().add(
+        Rectangle::new()
+            .set("id", mask_id)
+            .set("fill", "white")
+            .set("width", status_end + (spacer / 2.0))
+            .set("rx", 10)
+            .set("ry", 10)
+            .set("height", (FONT_SIZE * 1.2) as i32),
+    );
+
     document = document.add(label_paths).add(status_paths);
 
     // Styling
