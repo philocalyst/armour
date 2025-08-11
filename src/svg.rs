@@ -128,7 +128,7 @@ fn text_to_svg_paths(
     size: f32,
     fill_color: &str,
 ) -> Result<(Group, f32), Box<dyn Error>> {
-    let font_data = include_bytes!("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+    let font_data = include_bytes!("/home/miles/Downloads/amaranth/Amaranth-Regular.ttf");
     let face = Face::from_slice(font_data, 0).ok_or("Failed to parse font")?;
 
     let mut buffer = UnicodeBuffer::new();
@@ -255,11 +255,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let baseline = height * 0.80;
 
     let (label_paths, label_end) =
-        text_to_svg_paths(&label, label_start, FONT_SIZE * 0.98, FONT_SIZE, "#fff")?;
+        text_to_svg_paths(&label, label_start, baseline, FONT_SIZE, "#FDA902")?;
 
     let status_start = label_end + spacer;
     let (status_paths, status_end) =
-        text_to_svg_paths(&status, status_start, FONT_SIZE * 0.98, FONT_SIZE, "#fff")?;
+        text_to_svg_paths(&status, status_start, baseline, FONT_SIZE, "#000000")?;
 
     let label_width = label_end + (spacer / 2.0);
     let status_width = status_end - status_start + (spacer / 2.0);
