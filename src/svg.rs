@@ -7,7 +7,9 @@ use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{
-    Definitions, Group, Image, Mask, Path as SvgPath, Rectangle, Text, Title,
+    Definitions, Filter, FilterEffectComposite, FilterEffectFlood, FilterEffectMerge,
+    FilterEffectMergeNode, FilterEffectMorphology, Group, Image, Mask, Path as SvgPath, Rectangle,
+    Text, Title,
 };
 
 use lyon::math::{Point, point};
@@ -161,7 +163,9 @@ fn text_to_svg_paths(
             let path_data = lyon_path_to_svg_d(&path);
 
             if !path_data.is_empty() {
-                let svg_path = SvgPath::new().set("d", path_data);
+                let svg_path = SvgPath::new()
+                    .set("d", path_data)
+                    .set("filter", format!("url(#{})", "outlineBehindFilter"));
                 text_group = text_group.add(svg_path);
             }
         }
@@ -175,6 +179,42 @@ fn text_to_svg_paths(
 
 fn create_accessible_text(label: &str, status: &str) -> String {
     format!("{}: {}", label, status)
+}
+
+fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
+    let filter_id = "outlineBehindFilter".to_string();
+
+    let morphology = FilterEffectMorphology::new()
+        .set("in", "SourceAlpha".to_string())
+        .set("operator", "dilate")
+        .set("radius", 0.51)
+        .set("result", "dilated".to_string());
+
+    // feFlood: Create the outlne color
+    let flood = FilterEffectFlood::new()
+        .set("color", "#DA1813")
+        .set("result", "outlineColor".to_string());
+
+    // feComposite: Combine the flood color with the dilated shape
+    let composite = FilterEffectComposite::new()
+        .set("in", "outlineColor".to_string())
+        .set("in2", "dilated".to_string())
+        .set("operator", "in")
+        .set("result", "outline".to_string());
+
+    // feMerge: Merge the outline (behind) and the source graphic (on top)
+    let merge = FilterEffectMerge::new()
+        .add(FilterEffectMergeNode::new().set("in", "outline")) // Outline first
+        .add(FilterEffectMergeNode::new().set("in", "SourceGraphic")); // Original graphic second
+
+    // Create the <filter> element and add its children
+    let filter = Filter::new()
+        .set("id", filter_id.clone())
+        .add(morphology)
+        .add(flood)
+        .add(composite)
+        .add(merge);
+    Ok(filter)
 }
 
 pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
