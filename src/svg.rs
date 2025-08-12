@@ -7,10 +7,11 @@ use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{
-    Definitions, Filter, FilterEffectBlend, FilterEffectComposite, FilterEffectFlood,
-    FilterEffectGaussianBlur, FilterEffectMerge, FilterEffectMergeNode, FilterEffectMorphology,
-    FilterEffectOffset, Group, Image, LinearGradient, Mask, Path as SvgPath, Rectangle, Stop, Text,
-    Title,
+    Definitions, Filter, FilterEffectBlend, FilterEffectComposite, FilterEffectDiffuseLighting,
+    FilterEffectDistantLight, FilterEffectFlood, FilterEffectGaussianBlur, FilterEffectMerge,
+    FilterEffectMergeNode, FilterEffectMorphology, FilterEffectOffset,
+    FilterEffectSpecularLighting, Group, Image, LinearGradient, Mask, Path as SvgPath, Rectangle,
+    Stop, Text, Title,
 };
 
 use lyon::math::{Point, point};
@@ -225,50 +226,84 @@ fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
     Ok(filter)
 }
 
-fn make_raised_overlay_gradient(id: &str) -> LinearGradient {
-    // Top highlight (semi-opaque white), fades to transparent mid,
-    // then darkens toward the bottom (semi-opaque black).
-    LinearGradient::new()
+pub fn make_bevel_overlay_filter(id: &str) -> Filter {
+    // Small blur to avoid jaggy normals; keep low for crispness.
+    let blur = FilterEffectGaussianBlur::new()
+        .set("in", "SourceAlpha")
+        .set("stdDeviation", 0.5)
+        .set("result", "blur");
+
+    // Specular highlight (white), light coming from top-left.
+    let spec_light = FilterEffectSpecularLighting::new()
+        .set("in", "blur")
+        .set("surfaceScale", 1.2)
+        .set("specularConstant", 0.8)
+        .set("specularExponent", 24) // raise for crisper highlight
+        .set("lighting-color", "#ffffff")
+        .add(
+            FilterEffectDistantLight::new()
+                .set("azimuth", 225) // top-left-ish
+                .set("elevation", 45),
+        )
+        .set("result", "spec");
+
+    // Clip specular to the original shape.
+    let spec_clip = FilterEffectComposite::new()
+        .set("in", "spec")
+        .set("in2", "SourceAlpha")
+        .set("operator", "in")
+        .set("result", "specClip");
+
+    // Diffuse shading (darkening) for the opposite side.
+    let diff_light = FilterEffectDiffuseLighting::new()
+        .set("in", "blur")
+        .set("surfaceScale", 0.9)
+        .set("diffuseConstant", 1.0)
+        .set("lighting-color", "#000000") // will darken when blended
+        .add(
+            FilterEffectDistantLight::new()
+                .set("azimuth", 225)
+                .set("elevation", 45),
+        )
+        .set("result", "diff");
+
+    // Clip diffuse to the original shape.
+    let diff_clip = FilterEffectComposite::new()
+        .set("in", "diff")
+        .set("in2", "SourceAlpha")
+        .set("operator", "in")
+        .set("result", "diffClip");
+
+    // First darken with diffuse (multiply).
+    let shaded = FilterEffectBlend::new()
+        .set("in", "SourceGraphic")
+        .set("in2", "diffClip")
+        .set("mode", "multiply")
+        .set("result", "shaded");
+
+    // Then add specular highlight (screen).
+    let raised = FilterEffectBlend::new()
+        .set("in", "shaded")
+        .set("in2", "specClip")
+        .set("mode", "screen")
+        .set("result", "raised");
+
+    Filter::new()
         .set("id", id)
-        .set("x1", "0%")
-        .set("y1", "0%")
-        .set("x2", "0%")
-        .set("y2", "100%")
-        // Optional: compress the highlight band slightly toward the top.
-        // .set("gradientTransform", "matrix(1 0 0 0.9 0 0)")
-        // Bright highlight near the top edge
-        .add(
-            Stop::new()
-                .set("offset", "0%")
-                .set("stop-color", "#FFFFFF")
-                .set("stop-opacity", "0.45"),
-        )
-        .add(
-            Stop::new()
-                .set("offset", "18%")
-                .set("stop-color", "#FFFFFF")
-                .set("stop-opacity", "0.22"),
-        )
-        // Neutral/clear in the middle
-        .add(
-            Stop::new()
-                .set("offset", "52%")
-                .set("stop-color", "#FFFFFF")
-                .set("stop-opacity", "0.00"),
-        )
-        // Gentle shadow building toward the bottom
-        .add(
-            Stop::new()
-                .set("offset", "82%")
-                .set("stop-color", "#000000")
-                .set("stop-opacity", "0.12"),
-        )
-        .add(
-            Stop::new()
-                .set("offset", "100%")
-                .set("stop-color", "#000000")
-                .set("stop-opacity", "0.22"),
-        )
+        // Expand filter region so highlights/shadows don’t clip.
+        .set("filterUnits", "objectBoundingBox")
+        .set("x", "-10%")
+        .set("y", "-10%")
+        .set("width", "120%")
+        .set("height", "120%")
+        // Order matters: build pipeline
+        .add(blur)
+        .add(spec_light)
+        .add(spec_clip)
+        .add(diff_light)
+        .add(diff_clip)
+        .add(shaded)
+        .add(raised)
 }
 
 pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
@@ -379,13 +414,9 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let height_normalized = height / 16.0;
 
     let text_outline = create_text_outline()?;
-    let defs = Definitions::new()
-        .add(text_outline)
-        .add(make_raised_overlay_gradient("depth"));
+    let defs = Definitions::new().add(text_outline);
 
-    document = document
-        .add(defs)
-        .set("filter", format!("url(#{})", "depth"));
+    document = document.add(defs);
     document = document.add(bg_group);
     document = document.set("viewBox", format!("0 0 {total_width} {height}"));
     document = document.add(label_paths).add(status_paths);
