@@ -20,7 +20,7 @@ use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 const FONT_SIZE: f32 = 20.0;
 
 #[derive(Clone)]
-
+#[derive(Default)]
 pub struct BadgerOptions {
     pub status: String,               // The "right side" of the k/v THIS IS NEEDED!!
     pub status_color: Option<String>, // A color override on the default status color (blue)
@@ -178,7 +178,7 @@ fn text_to_svg_paths(
 }
 
 fn create_accessible_text(label: &str, status: &str) -> String {
-    format!("{}: {}", label, status)
+    format!("{label}: {status}")
 }
 
 fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
@@ -347,11 +347,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         })
         .and_border(|conf| conf.radius(px(10)));
 
-    let style = format!(r#"svg {{{}}}"#, style);
+    let style = format!(r#"svg {{{style}}}"#);
     document = document.add(svg::node::element::Style::new(style));
 
     // For testing/output (unchanged)
-    let output = format!("{:#}", document);
+    let output = format!("{document:#}");
     let output = output.replace("\n", "");
     use std::fs;
     fs::write("./test.svg", output)?;
@@ -376,9 +376,9 @@ pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
 
     // Create boilerplate svg shell
     let mut document = Document::new()
-        .set("width", scale * st_rect_width as f64 / 10.0)
+        .set("width", scale * st_rect_width / 10.0)
         .set("height", scale * 20.0)
-        .set("viewBox", format!("0 0 {} 200", st_rect_width))
+        .set("viewBox", format!("0 0 {st_rect_width} 200"))
         .set("xmlns", "http://www.w3.org/2000/svg")
         .set("role", "img")
         .set("aria-label", sanitized_status.clone());
@@ -386,19 +386,6 @@ pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     document = document.add(Title::new("").add(TextNode::new(sanitized_status.clone())));
 
     Ok(document)
-}
-
-impl Default for BadgerOptions {
-    fn default() -> Self {
-        Self {
-            status: String::new(),
-            label: None,
-            label_color: None,
-            status_color: None,
-            icon: None,
-            scale: None,
-        }
-    }
 }
 
 // match style {
