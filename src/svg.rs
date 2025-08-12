@@ -8,8 +8,8 @@ use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{
     Definitions, Filter, FilterEffectComposite, FilterEffectFlood, FilterEffectMerge,
-    FilterEffectMergeNode, FilterEffectMorphology, Group, Image, Mask, Path as SvgPath, Rectangle,
-    Text, Title,
+    FilterEffectMergeNode, FilterEffectMorphology, FilterEffectOffset, Group, Image, Mask,
+    Path as SvgPath, Rectangle, Text, Title,
 };
 
 use lyon::math::{Point, point};
@@ -190,15 +190,21 @@ fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
         .set("radius", 0.31)
         .set("result", "dilated".to_string());
 
+    let offset = FilterEffectOffset::new()
+        .set("in", "dilated".to_string())
+        .set("dx", -0.21)
+        .set("dy", 0.41)
+        .set("result", "offsetOutline".to_string());
+
     // feFlood: Create the outlne color
     let flood = FilterEffectFlood::new()
-        .set("flood-color", "#DA1813")
+        .set("flood-color", "#FF0000")
         .set("result", "outlineColor".to_string());
 
     // feComposite: Combine the flood color with the dilated shape
     let composite = FilterEffectComposite::new()
         .set("in", "outlineColor".to_string())
-        .set("in2", "dilated".to_string())
+        .set("in2", "offsetOutline".to_string())
         .set("operator", "in")
         .set("result", "outline".to_string());
 
@@ -211,6 +217,7 @@ fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
     let filter = Filter::new()
         .set("id", filter_id.clone())
         .add(morphology)
+        .add(offset)
         .add(flood)
         .add(composite)
         .add(merge);
@@ -244,12 +251,12 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let status_background_color = options
         .status_color // Fixed: was label_color
         .and_then(|c| color_presets.get(c.as_str()))
-        .unwrap_or(&"#F8AA00"); // Fallback color is blue (corrected from your code)
+        .unwrap_or(&"#60AB92"); // Fallback color is blue (corrected from your code)
 
     let label_background_color = options
         .label_color // Fixed: was status_color
         .and_then(|c| color_presets.get(c.as_str()))
-        .unwrap_or(&"#2719D1"); // Fallback color is slate gray
+        .unwrap_or(&"#150E5C"); // Fallback color is slate gray
 
     let icon_width = 30.0; // How large an icon is (the height will be capped though)
     let _scale = options.scale.unwrap_or(1.0);
@@ -295,11 +302,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let baseline = height * 0.80;
 
     let (label_paths, label_end) =
-        text_to_svg_paths(&label, label_start, baseline, FONT_SIZE, "#FDA902")?;
+        text_to_svg_paths(&label, label_start, baseline, FONT_SIZE, "#FFB4BB")?;
 
     let status_start = label_end + spacer;
     let (status_paths, status_end) =
-        text_to_svg_paths(&status, status_start, baseline, FONT_SIZE, "#fff")?;
+        text_to_svg_paths(&status, status_start, baseline, FONT_SIZE, "#F5ECEB")?;
 
     let label_width = label_end + (spacer / 2.0);
     let status_width = status_end - status_start + (spacer / 2.0);
