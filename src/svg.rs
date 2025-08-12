@@ -29,26 +29,25 @@ pub struct BadgerOptions {
     pub scale: Option<f64>,           // The scale of the entire badge
 }
 
-// Struct to implement ttf_parser's OutlineBuilder, building a lyon path
-struct LyonOutlineBuilder {
-    builder: lyon::path::Builder,
-    scale: f32,
-    x_offset: f32,
-    y_offset: f32,
+struct KurboOutlineBuilder {
+    path: BezPath,
+    scale: f64,
+    x_offset: f64,
+    y_offset: f64,
 }
 
-impl LyonOutlineBuilder {
-    fn new(scale: f32, x_offset: f32, y_offset: f32) -> Self {
+impl KurboOutlineBuilder {
+    fn new(scale: f64, x_offset: f64, y_offset: f64) -> Self {
         Self {
-            builder: LyonPath::builder(),
+            path: BezPath::new(),
             scale,
             x_offset,
             y_offset,
         }
     }
 
-    fn finish(self) -> LyonPath {
-        self.builder.build()
+    fn finish(self) -> BezPath {
+        self.path
     }
 
     fn scaled_point(&self, x: f32, y: f32) -> Point {
