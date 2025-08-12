@@ -13,7 +13,9 @@ use svg::node::element::{
     Path as SvgPath, Rectangle, Title,
 };
 
-use kurbo::{BezPath, PathEl, Point};
+use lyon::math::{Point, point};
+use lyon::path::Event;
+use lyon::path::Path as LyonPath;
 
 use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 
@@ -29,52 +31,53 @@ pub struct BadgerOptions {
     pub scale: Option<f64>,           // The scale of the entire badge
 }
 
-struct KurboOutlineBuilder {
-    path: BezPath,
-    scale: f64,
-    x_offset: f64,
-    y_offset: f64,
+// Struct to implement ttf_parser's OutlineBuilder, building a lyon path
+struct LyonOutlineBuilder {
+    builder: lyon::path::Builder,
+    scale: f32,
+    x_offset: f32,
+    y_offset: f32,
 }
 
-impl KurboOutlineBuilder {
-    fn new(scale: f64, x_offset: f64, y_offset: f64) -> Self {
+impl LyonOutlineBuilder {
+    fn new(scale: f32, x_offset: f32, y_offset: f32) -> Self {
         Self {
-            path: BezPath::new(),
+            builder: LyonPath::builder(),
             scale,
             x_offset,
             y_offset,
         }
     }
 
-    fn finish(self) -> BezPath {
-        self.path
+    fn finish(self) -> LyonPath {
+        self.builder.build()
     }
 
     fn scaled_point(&self, x: f32, y: f32) -> Point {
         // Scale and flip Y for SVG (glyph Y is positive up, SVG positive down)
-        Point::new(
-            (x as f64) * self.scale + self.x_offset,
-            (-(y as f64)) * self.scale + self.y_offset,
+        point(
+            (x * self.scale) + self.x_offset,
+            (-y * self.scale) + self.y_offset, // Flip Y
         )
     }
 }
 
-impl TtfOutlineBuilder for KurboOutlineBuilder {
+impl TtfOutlineBuilder for LyonOutlineBuilder {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.path.move_to(self.scaled_point(x, y));
+        self.builder.begin(self.scaled_point(x, y));
     }
 
     fn line_to(&mut self, x: f32, y: f32) {
-        self.path.line_to(self.scaled_point(x, y));
+        self.builder.line_to(self.scaled_point(x, y));
     }
 
     fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
-        self.path
-            .quad_to(self.scaled_point(x1, y1), self.scaled_point(x, y));
+        self.builder
+            .quadratic_bezier_to(self.scaled_point(x1, y1), self.scaled_point(x, y));
     }
 
     fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-        self.path.curve_to(
+        self.builder.cubic_bezier_to(
             self.scaled_point(x1, y1),
             self.scaled_point(x2, y2),
             self.scaled_point(x, y),
@@ -82,8 +85,42 @@ impl TtfOutlineBuilder for KurboOutlineBuilder {
     }
 
     fn close(&mut self) {
-        self.path.close_path();
+        self.builder.close();
     }
+}
+
+// Function to convert lyon Path to SVG 'd' string
+fn lyon_path_to_svg_d(path: &LyonPath) -> String {
+    let mut d = String::new();
+    for event in path {
+        match event {
+            Event::Begin { at } => d.push_str(&format!("M{:.2},{:.2}", at.x, at.y)),
+            Event::Line { from: _, to } => d.push_str(&format!("L{:.2},{:.2}", to.x, to.y)),
+            Event::Quadratic { from: _, ctrl, to } => d.push_str(&format!(
+                "Q{:.2},{:.2} {:.2},{:.2}",
+                ctrl.x, ctrl.y, to.x, to.y
+            )),
+            Event::Cubic {
+                from: _,
+                ctrl1,
+                ctrl2,
+                to,
+            } => d.push_str(&format!(
+                "C{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}",
+                ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, to.x, to.y
+            )),
+            Event::End {
+                last: _,
+                first: _,
+                close,
+            } => {
+                if close {
+                    d.push('Z');
+                }
+            }
+        }
+    }
+    d
 }
 
 // Core function: Convert text to SVG paths using shaping and outlining
@@ -115,7 +152,7 @@ fn text_to_svg_paths(
     let glyph_positions = output.glyph_positions();
 
     let units_per_em = face.units_per_em() as f32;
-    let scale = (size / units_per_em) as f64;
+    let scale = size / units_per_em;
 
     let mut text_group = Group::new().set("fill", fill_color);
     let mut cursor_x = x;
@@ -123,16 +160,16 @@ fn text_to_svg_paths(
     for (info, pos) in glyph_infos.iter().zip(glyph_positions.iter()) {
         let glyph_id = GlyphId(info.glyph_id as u16);
 
-        let mut builder = KurboOutlineBuilder::new(
+        let mut builder = LyonOutlineBuilder::new(
             scale,
-            (cursor_x + pos.x_offset as f32) as f64 * scale,
-            (y + pos.y_offset as f32) as f64 * scale,
+            cursor_x + pos.x_offset as f32 * scale,
+            y + pos.y_offset as f32 * scale,
         );
 
         // Use ttf-parser's outline_glyph
         if face.outline_glyph(glyph_id, &mut builder).is_some() {
             let path = builder.finish();
-            let path_data = path.to_svg();
+            let path_data = lyon_path_to_svg_d(&path);
 
             if !path_data.is_empty() {
                 let svg_path = SvgPath::new()
@@ -142,7 +179,7 @@ fn text_to_svg_paths(
             }
         }
 
-        cursor_x += (pos.x_advance as f64 * scale) as f32;
+        cursor_x += pos.x_advance as f32 * scale;
     }
 
     Ok((text_group, cursor_x))
