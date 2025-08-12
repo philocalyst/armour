@@ -3,7 +3,7 @@ use std::str::FromStr;
 use rhai::{Array, Dynamic, Engine, Map, Scope};
 /// Maps Rhai type strings to a conceptual validation strategy.
 #[derive(Debug, PartialEq, Eq, Hash)]
-enum RhaiType {
+pub(crate) enum RhaiType {
     Number,
     String,
     Bool,
