@@ -182,36 +182,6 @@ fn create_accessible_text(label: &str, status: &str) -> String {
     format!("{}: {}", label, status)
 }
 
-pub fn depth_linear_gradient(id: &str) -> LinearGradient {
-    LinearGradient::new()
-        .set("id", id)
-        .set("x1", "0%")
-        .set("y1", "0%")
-        .set("x2", "0%")
-        .set("y2", "100%")
-        // subtle top highlight
-        .add(
-            Stop::new()
-                .set("offset", "0%")
-                .set("stop-color", "#FFF3C4")
-                .set("stop-opacity", 1),
-        )
-        // mid body color
-        .add(
-            Stop::new()
-                .set("offset", "45%")
-                .set("stop-color", "#FDB34A")
-                .set("stop-opacity", 1),
-        )
-        // deeper bottom shade
-        .add(
-            Stop::new()
-                .set("offset", "100%")
-                .set("stop-color", "#A96400")
-                .set("stop-opacity", 1),
-        )
-}
-
 fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
     let filter_id = "outlineBehindFilter".to_string();
 
@@ -255,110 +225,50 @@ fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
     Ok(filter)
 }
 
-// An advanced inner-emboss filter (no external drop shadow).
-// It builds inner highlight and inner shadow masks from SourceAlpha,
-// then blends them over SourceGraphic (multiply + screen).
-// Apply to the whole SVG or a <g>:
-//   .set("filter", "url(#inner-emboss)")
-pub fn inner_emboss_filter(
-    id: &str,
-    blur: f32,       // edge softness (e.g., 0.8..2.5)
-    distance: f32,   // bevel direction offset (e.g., 0.8..1.6)
-    hi_opacity: f32, // highlight strength (e.g., 0.35..0.65)
-    sh_opacity: f32, // shadow strength (e.g., 0.25..0.55)
-) -> Filter {
-    // Helpers to make child elements.
-    // 1) Blur the alpha to get a soft edge for beveling
-    let blur_node = FilterEffectGaussianBlur::new()
-        .set("in", "SourceAlpha")
-        .set("stdDeviation", blur)
-        .set("result", "blur");
-
-    // 2) Top-left inner highlight mask
-    let offset_hi = FilterEffectOffset::new()
-        .set("in", "blur")
-        .set("dx", -distance)
-        .set("dy", -distance)
-        .set("result", "offHi");
-
-    // Arithmetic: offHi inside SourceAlpha only (inner mask)
-    let inner_hi_mask = FilterEffectComposite::new()
-        .set("in", "offHi")
-        .set("in2", "SourceAlpha")
-        .set("operator", "arithmetic")
-        .set("k2", -1)
-        .set("k3", 1)
-        .set("result", "innerHiMask");
-
-    let flood_hi = FilterEffectFlood::new()
-        .set("flood-color", "#FFFFFF")
-        .set("flood-opacity", hi_opacity)
-        .set("result", "hiColor");
-
-    let highlight = FilterEffectComposite::new()
-        .set("in", "hiColor")
-        .set("in2", "innerHiMask")
-        .set("operator", "in")
-        .set("result", "highlight");
-
-    // 3) Bottom-right inner shadow mask
-    let offset_sh = FilterEffectOffset::new()
-        .set("in", "blur")
-        .set("dx", distance)
-        .set("dy", distance)
-        .set("result", "offSh");
-
-    let inner_sh_mask = FilterEffectComposite::new()
-        .set("in", "offSh")
-        .set("in2", "SourceAlpha")
-        .set("operator", "arithmetic")
-        .set("k2", -1)
-        .set("k3", 1)
-        .set("result", "innerShMask");
-
-    let flood_sh = FilterEffectFlood::new()
-        .set("flood-color", "#000000")
-        .set("flood-opacity", sh_opacity)
-        .set("result", "shColor");
-
-    let shadow = FilterEffectComposite::new()
-        .set("in", "shColor")
-        .set("in2", "innerShMask")
-        .set("operator", "in")
-        .set("result", "shadow");
-
-    // 4) Blend shadow and highlight over the original
-    let shaded = FilterEffectBlend::new()
-        .set("in", "SourceGraphic")
-        .set("in2", "shadow")
-        .set("mode", "multiply")
-        .set("result", "shaded");
-
-    let embossed = FilterEffectBlend::new()
-        .set("in", "shaded")
-        .set("in2", "highlight")
-        .set("mode", "screen")
-        .set("result", "embossed");
-
-    // Return the <filter> element
-    Filter::new()
+fn make_raised_overlay_gradient(id: &str) -> LinearGradient {
+    // Top highlight (semi-opaque white), fades to transparent mid,
+    // then darkens toward the bottom (semi-opaque black).
+    LinearGradient::new()
         .set("id", id)
-        // generous region so inner glows don’t clip
-        .set("x", "-20%")
-        .set("y", "-20%")
-        .set("width", "140%")
-        .set("height", "140%")
-        .add(blur_node)
-        .add(offset_hi)
-        .add(inner_hi_mask)
-        .add(flood_hi)
-        .add(highlight)
-        .add(offset_sh)
-        .add(inner_sh_mask)
-        .add(flood_sh)
-        .add(shadow)
-        .add(shaded)
-        .add(embossed)
+        .set("x1", "0%")
+        .set("y1", "0%")
+        .set("x2", "0%")
+        .set("y2", "100%")
+        // Optional: compress the highlight band slightly toward the top.
+        // .set("gradientTransform", "matrix(1 0 0 0.9 0 0)")
+        // Bright highlight near the top edge
+        .add(
+            Stop::new()
+                .set("offset", "0%")
+                .set("stop-color", "#FFFFFF")
+                .set("stop-opacity", "0.45"),
+        )
+        .add(
+            Stop::new()
+                .set("offset", "18%")
+                .set("stop-color", "#FFFFFF")
+                .set("stop-opacity", "0.22"),
+        )
+        // Neutral/clear in the middle
+        .add(
+            Stop::new()
+                .set("offset", "52%")
+                .set("stop-color", "#FFFFFF")
+                .set("stop-opacity", "0.00"),
+        )
+        // Gentle shadow building toward the bottom
+        .add(
+            Stop::new()
+                .set("offset", "82%")
+                .set("stop-color", "#000000")
+                .set("stop-opacity", "0.12"),
+        )
+        .add(
+            Stop::new()
+                .set("offset", "100%")
+                .set("stop-color", "#000000")
+                .set("stop-opacity", "0.22"),
+        )
 }
 
 pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
@@ -471,19 +381,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let text_outline = create_text_outline()?;
     let defs = Definitions::new()
         .add(text_outline)
-        .add(depth_linear_gradient("depthGradient")) // optional
-        .add(inner_emboss_filter(
-            "inner-emboss",
-            1.0,  // blur
-            1.0,  // distance
-            0.55, // highlight opacity
-            0.45, // shadow opacity
-        ));
+        .add(make_raised_overlay_gradient("depth"));
 
-    document = document.add(defs);
-    bg_group = bg_group
-        .set("filter", format!("url(#{})", "inner-emboss"))
-        .set("filter", format!("url(#{})", "depthGradient"));
+    document = document
+        .add(defs)
+        .set("filter", format!("url(#{})", "depth"));
     document = document.add(bg_group);
     document = document.set("viewBox", format!("0 0 {total_width} {height}"));
     document = document.add(label_paths).add(status_paths);
