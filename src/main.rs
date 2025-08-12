@@ -3,7 +3,12 @@ use std::error::Error;
 use svg::BadgerOptions;
 use svg::badgen;
 
+use rhai_doc::{FunctionDoc, RhaiDocBuilder};
+
+use crate::rhai::RhaiType;
+
 mod colors;
+mod rhai;
 mod svg;
 
 fn main() -> Result<(), Box<dyn Error>> {
