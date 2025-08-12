@@ -1,5 +1,5 @@
 use css_style::unit::{em, px};
-use rustybuzz::{Direction, Face, Language, Script, UnicodeBuffer, script};
+use rustybuzz::{Direction, Face, UnicodeBuffer, script};
 use ttf_parser::GlyphId;
 // use css_style;
 use crate::colors::COLORS;
@@ -7,16 +7,14 @@ use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{
-    Definitions, Filter, FilterEffectBlend, FilterEffectComposite, FilterEffectDiffuseLighting,
-    FilterEffectDistantLight, FilterEffectFlood, FilterEffectGaussianBlur, FilterEffectMerge,
-    FilterEffectMergeNode, FilterEffectMorphology, FilterEffectOffset,
-    FilterEffectSpecularLighting, Group, Image, LinearGradient, Mask, Path as SvgPath, Rectangle,
-    Stop, Text, Title,
+    Definitions, Filter, FilterEffectComposite, FilterEffectFlood, FilterEffectMerge,
+    FilterEffectMergeNode, FilterEffectMorphology, FilterEffectOffset, Group, Image,
+    Path as SvgPath, Rectangle, Title,
 };
 
 use lyon::math::{Point, point};
 use lyon::path::Event;
-use lyon::path::{Path as LyonPath, builder::*};
+use lyon::path::Path as LyonPath;
 use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 
 const FONT_SIZE: f32 = 20.0;
@@ -226,86 +224,6 @@ fn create_text_outline() -> Result<Filter, Box<dyn Error>> {
     Ok(filter)
 }
 
-pub fn make_bevel_overlay_filter(id: &str) -> Filter {
-    // Small blur to avoid jaggy normals; keep low for crispness.
-    let blur = FilterEffectGaussianBlur::new()
-        .set("in", "SourceAlpha")
-        .set("stdDeviation", 0.5)
-        .set("result", "blur");
-
-    // Specular highlight (white), light coming from top-left.
-    let spec_light = FilterEffectSpecularLighting::new()
-        .set("in", "blur")
-        .set("surfaceScale", 1.2)
-        .set("specularConstant", 0.8)
-        .set("specularExponent", 24) // raise for crisper highlight
-        .set("lighting-color", "#ffffff")
-        .add(
-            FilterEffectDistantLight::new()
-                .set("azimuth", 225) // top-left-ish
-                .set("elevation", 45),
-        )
-        .set("result", "spec");
-
-    // Clip specular to the original shape.
-    let spec_clip = FilterEffectComposite::new()
-        .set("in", "spec")
-        .set("in2", "SourceAlpha")
-        .set("operator", "in")
-        .set("result", "specClip");
-
-    // Diffuse shading (darkening) for the opposite side.
-    let diff_light = FilterEffectDiffuseLighting::new()
-        .set("in", "blur")
-        .set("surfaceScale", 0.9)
-        .set("diffuseConstant", 1.0)
-        .set("lighting-color", "#000000") // will darken when blended
-        .add(
-            FilterEffectDistantLight::new()
-                .set("azimuth", 225)
-                .set("elevation", 45),
-        )
-        .set("result", "diff");
-
-    // Clip diffuse to the original shape.
-    let diff_clip = FilterEffectComposite::new()
-        .set("in", "diff")
-        .set("in2", "SourceAlpha")
-        .set("operator", "in")
-        .set("result", "diffClip");
-
-    // First darken with diffuse (multiply).
-    let shaded = FilterEffectBlend::new()
-        .set("in", "SourceGraphic")
-        .set("in2", "diffClip")
-        .set("mode", "multiply")
-        .set("result", "shaded");
-
-    // Then add specular highlight (screen).
-    let raised = FilterEffectBlend::new()
-        .set("in", "shaded")
-        .set("in2", "specClip")
-        .set("mode", "screen")
-        .set("result", "raised");
-
-    Filter::new()
-        .set("id", id)
-        // Expand filter region so highlights/shadows don’t clip.
-        .set("filterUnits", "objectBoundingBox")
-        .set("x", "-10%")
-        .set("y", "-10%")
-        .set("width", "120%")
-        .set("height", "120%")
-        // Order matters: build pipeline
-        .add(blur)
-        .add(spec_light)
-        .add(spec_clip)
-        .add(diff_light)
-        .add(diff_clip)
-        .add(shaded)
-        .add(raised)
-}
-
 pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     // We need at least a status
     if options.status.is_empty() {
@@ -393,7 +311,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let label_width = label_end + (spacer / 2.0);
     let status_width = status_end - status_start + (spacer / 2.0);
 
-    let mut bg_group = Group::new()
+    let bg_group = Group::new()
         .add(
             Rectangle::new()
                 .set("fill", label_background_color.to_string())
