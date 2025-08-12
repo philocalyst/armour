@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use rhai_doc::{FunctionParam, FunctionReturn};
 use svg::BadgerOptions;
 use svg::badgen;
 
@@ -29,6 +30,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         })
         .collect();
+
+    let mut args: Vec<rhai::RhaiType> = Vec::new();
+
+    if function_data.len() > 1 {
+        println!("There should only be one main function")
+    } else {
+        let main = function_data.get(0).unwrap();
+
+        for param in main.0.clone() {
+            args.push(RhaiType::from(param.type_name.unwrap().as_str()));
+        }
+    }
+
+    println!("{:?}", args);
 
     let badge = badgen(BadgerOptions {
         status: String::from("SYN"),
