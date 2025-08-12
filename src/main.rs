@@ -12,7 +12,11 @@ mod rhai;
 mod svg;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // Create the lua struct for managing lua state
+    let project = RhaiDocBuilder::new()
+        .with_source_dir("/home/miles/Downloads/armour/test")
+        .scan()?;
+
+    let page = project.scripts().get(0).unwrap();
 
     let badge = badgen(BadgerOptions {
         status: String::from("SYN"),
