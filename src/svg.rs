@@ -1,6 +1,6 @@
 use css_style::unit::{em, px};
-use rustybuzz::{Direction, Face, UnicodeBuffer, script};
-use ttf_parser::GlyphId;
+use harfrust::{Direction, FontRef, UnicodeBuffer, script};
+use ttf_parser::{Face, GlyphId};
 // use css_style;
 use crate::colors::COLORS;
 use std::error::Error;
@@ -125,19 +125,27 @@ fn lyon_path_to_svg_d(path: &LyonPath) -> String {
 fn text_to_svg_paths(
     text: &str,
     x: f32,
-    y: f32, // Baseline y-position
+    y: f32,
     size: f32,
     fill_color: &str,
 ) -> Result<(Group, f32), Box<dyn Error>> {
     let font_data = include_bytes!("/home/miles/Downloads/amaranth/Amaranth-Regular.ttf");
-    let face = Face::from_slice(font_data, 0).ok_or("Failed to parse font")?;
 
+    // Parse font with ttf-parser
+    let face = Face::parse(font_data, 0)?;
+
+    let font = FontRef::new(font_data)?;
+
+    // Create HarfRüst shaper
     let mut buffer = UnicodeBuffer::new();
     buffer.push_str(text);
     buffer.set_direction(Direction::LeftToRight);
-    buffer.set_script(script::LATIN); // Customize for script if needed
+    buffer.set_script(script::LATIN);
 
-    let output = rustybuzz::shape(&face, &[], buffer);
+    let shaper_data = harfrust::ShaperData::new(&font); // Pass raw bytes
+    let shaper = shaper_data.shaper(&font).build();
+
+    let output = shaper.shape(buffer, &[]);
     let glyph_infos = output.glyph_infos();
     let glyph_positions = output.glyph_positions();
 
@@ -145,7 +153,6 @@ fn text_to_svg_paths(
     let scale = size / units_per_em;
 
     let mut text_group = Group::new().set("fill", fill_color);
-
     let mut cursor_x = x;
 
     for (info, pos) in glyph_infos.iter().zip(glyph_positions.iter()) {
@@ -157,6 +164,7 @@ fn text_to_svg_paths(
             y + pos.y_offset as f32 * scale,
         );
 
+        // Use ttf-parser's outline_glyph
         if face.outline_glyph(glyph_id, &mut builder).is_some() {
             let path = builder.finish();
             let path_data = lyon_path_to_svg_d(&path);
@@ -169,7 +177,6 @@ fn text_to_svg_paths(
             }
         }
 
-        // Advance cursor
         cursor_x += pos.x_advance as f32 * scale;
     }
 
