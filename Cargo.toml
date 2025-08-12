@@ -10,6 +10,8 @@ fontdb = "0.23.0"
 lyon = "1.0.1"
 phf = { version = "0.11.3", features = ["macros"] }
 rand = "0.9.1"
+rhai = "1.22.2"
+rhai-doc = {path = "/home/miles/Downloads/armour/src/rhai-doc"}
 rustybuzz = "0.20.1"
 svg = "0.18.0"
 ttf-parser = "0.25.1"
