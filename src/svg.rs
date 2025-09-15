@@ -8,9 +8,10 @@ use std::error::Error;
 use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{
-    Definitions, Filter, FilterEffectComposite, FilterEffectFlood, FilterEffectMerge,
-    FilterEffectMergeNode, FilterEffectMorphology, FilterEffectOffset, Group, Image,
-    Path as SvgPath, Rectangle, Title,
+    Definitions, Filter, FilterEffectComposite, FilterEffectDistantLight, FilterEffectFlood,
+    FilterEffectMerge, FilterEffectMergeNode, FilterEffectMorphology, FilterEffectOffset,
+    FilterEffectSpecularLighting, FilterEffectTurbulence, Group, Image, Path as SvgPath, Rectangle,
+    Title,
 };
 
 use lyon::math::{Point, point};
@@ -312,11 +313,11 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let (label_paths, label_end) =
         text_to_svg_paths(&label, label_start, baseline, FONT_SIZE, "#FFB4BB")?;
 
-    let status_start = label_end + spacer;
+    let status_start = label_end + (spacer * 2.0);
     let (status_paths, status_end) =
         text_to_svg_paths(&status, status_start, baseline, FONT_SIZE, "#F5ECEB")?;
 
-    let label_width = label_end + (spacer / 2.0);
+    let label_width = label_end + ((status_start - label_end) / 2.0);
     let status_width = status_end - status_start + (spacer / 2.0);
 
     let bg_group = Group::new()
@@ -340,7 +341,10 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let height_normalized = height / 16.0;
 
     let text_outline = create_text_outline()?;
-    let defs = Definitions::new().add(text_outline);
+    let noise = create_nnnoise_filter("nnoise");
+    let defs = Definitions::new().add(text_outline).add(noise);
+
+    document = document.set("filter", format!("url(#{})", "nnoise"));
 
     document = document.add(defs);
     document = document.add(bg_group);
@@ -365,6 +369,49 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     fs::write("./test.svg", output)?;
 
     Ok(document)
+}
+
+fn create_nnnoise_filter(id: &str) -> Filter {
+    let fe_turbulence = FilterEffectTurbulence::new()
+        .set("type", "turbulence")
+        .set("baseFrequency", "0.102")
+        .set("numOctaves", "4")
+        .set("seed", "15")
+        .set("stitchTiles", "stitch")
+        .set("x", "0%")
+        .set("y", "0%")
+        .set("width", "100%")
+        .set("height", "100%")
+        .set("result", "turbulence");
+
+    let fe_distant_light = FilterEffectDistantLight::new()
+        .set("azimuth", "3")
+        .set("elevation", "129");
+
+    let fe_specular_lighting = FilterEffectSpecularLighting::new()
+        .set("surfaceScale", "12")
+        .set("specularConstant", "0.9")
+        .set("specularExponent", "20")
+        .set("lighting-color", "#7957A8")
+        .set("x", "0%")
+        .set("y", "0%")
+        .set("width", "100%")
+        .set("height", "100%")
+        .set("in", "turbulence")
+        .set("result", "specularLighting")
+        .add(fe_distant_light);
+
+    Filter::new()
+        .set("id", id)
+        .set("x", "-20%")
+        .set("y", "-20%")
+        .set("width", "140%")
+        .set("height", "140%")
+        .set("filterUnits", "objectBoundingBox")
+        .set("primitiveUnits", "userSpaceOnUse")
+        .set("color-interpolation-filters", "linearRGB")
+        .add(fe_turbulence)
+        .add(fe_specular_lighting)
 }
 
 pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
