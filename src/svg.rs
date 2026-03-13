@@ -14,9 +14,7 @@ use svg::node::element::{
     Title,
 };
 
-use lyon::math::{Point, point};
-use lyon::path::Event;
-use lyon::path::Path as LyonPath;
+use kurbo::{BezPath, PathEl, Point};
 
 use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 
@@ -32,53 +30,53 @@ pub struct BadgerOptions {
     pub scale: Option<f64>,           // The scale of the entire badge
 }
 
-// Struct to implement ttf_parser's OutlineBuilder, building a lyon path
-struct LyonOutlineBuilder {
-    builder: lyon::path::Builder,
+// Struct to implement ttf_parser's OutlineBuilder, building a kurbo path
+struct KurboOutlineBuilder {
+    path: BezPath,
     scale: f32,
     x_offset: f32,
     y_offset: f32,
 }
 
-impl LyonOutlineBuilder {
+impl KurboOutlineBuilder {
     fn new(scale: f32, x_offset: f32, y_offset: f32) -> Self {
         Self {
-            builder: LyonPath::builder(),
+            path: BezPath::new(),
             scale,
             x_offset,
             y_offset,
         }
     }
 
-    fn finish(self) -> LyonPath {
-        self.builder.build()
+    fn finish(self) -> BezPath {
+        self.path
     }
 
     fn scaled_point(&self, x: f32, y: f32) -> Point {
         // Scale and flip Y for SVG (glyph Y is positive up, SVG positive down)
-        point(
-            (x * self.scale) + self.x_offset,
-            (-y * self.scale) + self.y_offset, // Flip Y
+        Point::new(
+            ((x * self.scale) + self.x_offset) as f64,
+            ((-y * self.scale) + self.y_offset) as f64,
         )
     }
 }
 
-impl TtfOutlineBuilder for LyonOutlineBuilder {
+impl TtfOutlineBuilder for KurboOutlineBuilder {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.builder.begin(self.scaled_point(x, y));
+        self.path.move_to(self.scaled_point(x, y));
     }
 
     fn line_to(&mut self, x: f32, y: f32) {
-        self.builder.line_to(self.scaled_point(x, y));
+        self.path.line_to(self.scaled_point(x, y));
     }
 
     fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
-        self.builder
-            .quadratic_bezier_to(self.scaled_point(x1, y1), self.scaled_point(x, y));
+        self.path
+            .quad_to(self.scaled_point(x1, y1), self.scaled_point(x, y));
     }
 
     fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-        self.builder.cubic_bezier_to(
+        self.path.curve_to(
             self.scaled_point(x1, y1),
             self.scaled_point(x2, y2),
             self.scaled_point(x, y),
@@ -86,39 +84,26 @@ impl TtfOutlineBuilder for LyonOutlineBuilder {
     }
 
     fn close(&mut self) {
-        self.builder.close();
+        self.path.close_path();
     }
 }
 
-// Function to convert lyon Path to SVG 'd' string
-fn lyon_path_to_svg_d(path: &LyonPath) -> String {
+// Function to convert kurbo BezPath to SVG 'd' string
+fn bezpath_to_svg_d(path: &BezPath) -> String {
     let mut d = String::new();
-    for event in path {
-        match event {
-            Event::Begin { at } => d.push_str(&format!("M{:.2},{:.2}", at.x, at.y)),
-            Event::Line { from: _, to } => d.push_str(&format!("L{:.2},{:.2}", to.x, to.y)),
-            Event::Quadratic { from: _, ctrl, to } => d.push_str(&format!(
+    for el in path.iter() {
+        match el {
+            PathEl::MoveTo(p) => d.push_str(&format!("M{:.2},{:.2}", p.x, p.y)),
+            PathEl::LineTo(p) => d.push_str(&format!("L{:.2},{:.2}", p.x, p.y)),
+            PathEl::QuadTo(ctrl, to) => d.push_str(&format!(
                 "Q{:.2},{:.2} {:.2},{:.2}",
                 ctrl.x, ctrl.y, to.x, to.y
             )),
-            Event::Cubic {
-                from: _,
-                ctrl1,
-                ctrl2,
-                to,
-            } => d.push_str(&format!(
+            PathEl::CurveTo(ctrl1, ctrl2, to) => d.push_str(&format!(
                 "C{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}",
                 ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, to.x, to.y
             )),
-            Event::End {
-                last: _,
-                first: _,
-                close,
-            } => {
-                if close {
-                    d.push('Z');
-                }
-            }
+            PathEl::ClosePath => d.push('Z'),
         }
     }
     d
@@ -132,7 +117,9 @@ fn text_to_svg_paths(
     size: f32,
     fill_color: &str,
 ) -> Result<(Group, f32), Box<dyn Error>> {
-    let font_data = include_bytes!("/home/miles/Downloads/amaranth/Amaranth-Regular.ttf");
+    let font_data = include_bytes!(
+        "/Users/philocalyst/Library/Fonts/HomeManager/truetype/Charis-BoldItalic.ttf"
+    );
 
     // Parse font with ttf-parser
     let face = Face::parse(font_data, 0)?;
@@ -161,7 +148,7 @@ fn text_to_svg_paths(
     for (info, pos) in glyph_infos.iter().zip(glyph_positions.iter()) {
         let glyph_id = GlyphId(info.glyph_id as u16);
 
-        let mut builder = LyonOutlineBuilder::new(
+        let mut builder = KurboOutlineBuilder::new(
             scale,
             cursor_x + pos.x_offset as f32 * scale,
             y + pos.y_offset as f32 * scale,
@@ -170,7 +157,7 @@ fn text_to_svg_paths(
         // Use ttf-parser's outline_glyph
         if face.outline_glyph(glyph_id, &mut builder).is_some() {
             let path = builder.finish();
-            let path_data = lyon_path_to_svg_d(&path);
+            let path_data = bezpath_to_svg_d(&path);
 
             if !path_data.is_empty() {
                 let svg_path = SvgPath::new()
