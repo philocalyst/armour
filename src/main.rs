@@ -77,6 +77,14 @@ fn process_badges(mut engine: Engine, badges: Vec<Badge>, universal_options: Glo
             .try_into()
             .unwrap();
 
-        dbg!(entry);
+        badgen(BadgerOptions {
+            primary_color: Some(badge.primary_color),
+            secondary_color: Some(badge.secondary_color),
+            label: Some(entry.key),
+            status: entry.value,
+            icon: None,
+            scale: Some(universal_options.scale as f64),
+        })
+        .unwrap();
     }
 }
