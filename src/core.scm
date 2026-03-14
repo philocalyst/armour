@@ -1,4 +1,6 @@
 (provide my-fun)
+;;@doc
+;; Get the ID of the closed document
 (define (my-fun x . args)
   (displayln "called with" (length args) "optional args")
   (displayln "optional args:" args))
