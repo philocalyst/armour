@@ -1,0 +1,12 @@
+[[badge]]
+status_color = "blue"
+label_color = "red"
+scale = 2
+
+[[badge.get-edition]]
+enable = true
+
+[[badge]]
+status = { name = "test", color = "#00ff00" }
+label = { name = "feature", color = "#00ff00" }
+scale = 2
