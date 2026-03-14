@@ -15,56 +15,127 @@ fn extract_quoted_string(input: &str) -> &str {
 
 include!("./src/documentation.rs");
 
+use chumsky::prelude::*;
+
 fn parser<'a>() -> impl Parser<'a, &'a str, Item, extra::Err<Rich<'a, char>>> {
-    // An identifier: ASCII alphanumeric or underscore
     let ident = text::ascii::ident().map(|s: &str| s.to_string());
 
-    // Optional type annotation in {braces}
-    let ty = ident.delimited_by(just('{'), just('}')).padded().or_not();
-
-    // Description: everything to end of line
-    let desc = any()
+    // rest of line (trimmed), stops before \n
+    let rest_of_line = any()
         .filter(|c: &char| *c != '\n')
         .repeated()
         .collect::<String>()
         .map(|s| s.trim().to_string());
 
-    let param = just("@param")
+    // optional {TypeName} — only handles simple Named types for now
+    let ty = ident
+        .clone()
+        .delimited_by(just('{'), just('}'))
         .padded()
-        .ignore_then(ident) // param name
+        .map(TypeExpr::Named)
+        .or_not();
+
+    // The very first non-tag, non-empty line is the summary.
+
+    let summary = rest_of_line
+        .clone()
+        .filter(|s| !s.is_empty() && !s.starts_with('@'));
+
+    // Zero or more non-tag lines after the summary.
+
+    let desc_line = rest_of_line
+        .clone()
+        .filter(|s: &String| !s.starts_with('@'))
+        .then_ignore(just('\n').or_not());
+
+    let description = desc_line
+        .repeated()
+        .at_least(1)
+        .collect::<Vec<_>>()
+        .map(|lines| lines.join("\n"))
+        .map(|s| s.trim().to_string())
+        .or_not();
+
+    let param = just("@param")
+        .then(just(' ').repeated().at_least(1))
+        .ignore_then(ident.clone()) // name
         .then(ty) // optional {Type}
-        .then(desc) // rest of line as description
+        .then_ignore(just(' ').repeated())
+        .then(rest_of_line.clone().or_not()) // description
+        .then_ignore(just('\n').or_not())
         .map(|((name, param_type), description)| Param {
             name,
-            param_type: param_type.map(|n| TypeExpr::Named(n)),
-            description: Some(description),
+            param_type,
+            description: description.filter(|s| !s.is_empty()),
             modifiers: vec![],
         });
 
-    Item {
-        name: "hi",
-        doc: DocComment {
-            summary: (),
-            description: (),
-            kind: (),
-            name: (),
-            location: (),
-            params: (),
-            returns: (),
-            errors: (),
-            raises: (),
-            fields: (),
-            see: (),
-            usage: (),
-            is_local: (),
-            within: (),
-            section: (),
-            annotations: (),
-            module_tags: (),
-        },
-        kind: ItemKind::Function,
-        location: None,
+    let ret = just("@return")
+        .then(just(' ').repeated())
+        .ignore_then(rest_of_line.clone().or_not())
+        .then_ignore(just('\n').or_not())
+        .map(|description| Return {
+            description: description.filter(|s| !s.is_empty()),
+            return_type: None,
+            group: None,
+        });
+
+    let see = just("@see")
+        .then(just(' ').repeated().at_least(1))
+        .ignore_then(rest_of_line.clone())
+        .then_ignore(just('\n').or_not())
+        .map(|target| See {
+            reference: Ref {
+                target,
+                display: None,
+            },
+        });
+
+    #[derive(Debug)]
+    enum Tag {
+        Param(Param),
+        Return(Return),
+        See(See),
     }
+
+    let tag = choice((
+        param.map(Tag::Param),
+        ret.map(Tag::Return),
+        see.map(Tag::See),
+    ));
+
+    // A full document comment block
+    // Layout:
+    //   <summary>
+    //   [<description lines>]
+    //   [@tag ...]*
+
+    summary
+        .then_ignore(just('\n'))
+        .then(description)
+        .then(tag.repeated().collect::<Vec<_>>())
+        .map(|((summary, description), tags)| {
+            let mut doc = DocComment {
+                summary,
+                description,
+                ..DocComment::default()
+            };
+
+            for tag in tags {
+                match tag {
+                    Tag::Param(p) => doc.params.push(p),
+                    Tag::Return(r) => doc.returns.push(r),
+                    Tag::See(s) => doc.see.push(s),
+                }
+            }
+
+            Item {
+                name: doc.name.clone().unwrap_or_default(),
+                doc,
+                kind: ItemKind::Function,
+                location: None,
+            }
+        })
 }
 
 include!("./src/wrappers/toml.rs");
@@ -110,8 +181,15 @@ fn main() {
     let plugins: Vec<PluginInfo> = stems
         .into_iter()
         .map(|stem| {
-            let doc = query_top_level_define(&ast, &format!("{}__doc__", stem))
-                .and_then(|node| Some(extract_quoted_string(&node.to_string()).to_string()));
+            let doc = query_top_level_define(&ast, &format!("{}__doc__", stem)).and_then(|node| {
+                let node = node.to_string();
+                Some(
+                    parser()
+                        .parse(extract_quoted_string(node.as_ref()))
+                        .into_result()
+                        .unwrap(),
+                )
+            });
 
             PluginInfo {
                 entry_point: stem,
@@ -129,7 +207,7 @@ fn main() {
 
 struct PluginInfo {
     entry_point: String,
-    doc: Option<String>,
+    doc: Option<Item>,
 }
 
 fn to_variant_name(entry_point: &str) -> String {
@@ -153,23 +231,6 @@ fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
 
     let entry_points: Vec<&str> = plugins.iter().map(|p| p.entry_point.as_str()).collect();
 
-    fs::write(
-        "out",
-        plugins
-            .iter()
-            .map(|each| each.doc.clone().unwrap_or_default())
-            .collect::<Vec<String>>()
-            .join("\n"),
-    );
-
-    let doc_attrs: Vec<TokenStream> = plugins
-        .iter()
-        .map(|p| match &p.doc {
-            Some(doc) => quote! { #[doc = #doc] },
-            None => quote! {},
-        })
-        .collect();
-
     let entry_point_arms = variants
         .iter()
         .zip(entry_points.iter())
@@ -179,7 +240,10 @@ fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
         .iter()
         .zip(plugins.iter())
         .map(|(v, p)| match &p.doc {
-            Some(doc) => quote! { Producer::#v => Some(#doc), },
+            Some(item) => {
+                let doc = item.doc.summary.as_str();
+                quote! { Producer::#v => Some(#doc), }
+            }
             None => quote! { Producer::#v => None, },
         });
 
@@ -191,7 +255,7 @@ fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
     quote! {
         #[derive(Debug, serde::Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
         pub enum Producer {
-            #(#doc_attrs #variants,)*
+            #( #variants,)*
         }
 
         impl Producer {
