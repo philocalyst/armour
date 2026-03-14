@@ -481,7 +481,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
         .unwrap_or(&"#60AB92"); // Fallback color is blue (corrected from your code)
 
     let label_background_color = options
-        .label_color // Fixed: was status_color
+        .primary_color // Fixed: was status_color
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"#150E5C"); // Fallback color is slate gray
 
