@@ -1,42 +1,48 @@
-use std::error::Error;
-use std::fs::write;
-
 use steel::SteelErr;
 use steel::SteelVal;
 use steel::rerrs::ErrorKind;
 use steel::steel_vm::engine::Engine;
 use steel::steel_vm::register_fn::RegisterFn;
-use svg::BadgerOptions;
-use svg::badgen;
+use tracing::{info, instrument, warn};
 
 use crate::badger::Badge;
 use crate::badger::Globals;
+use crate::error::ArmourError;
+use crate::svg::{BadgerOptions, badgen};
 use crate::wrappers::toml::parse_toml;
 
 mod badger;
 mod colors;
 mod documentation;
+mod error;
 mod svg;
 mod wrappers;
 
 include!(concat!(env!("OUT_DIR"), "/producers.rs"));
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), ArmourError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    info!("starting armour badge generator");
+
     let mut engine = Engine::new();
     engine.with_contracts(true);
 
     let core = include_str!("./core.scm");
     let plugins = include_str!(concat!(env!("OUT_DIR"), "/all-plugins.scm"));
 
-    // Now core is in the module system, so (require "core") resolves
     engine.register_steel_module("core".to_string(), core.to_string());
-
     engine.register_fn("parse-toml", parse_toml);
     engine.run(plugins)?;
 
     let config: badger::Config = toml::from_str(include_str!("../badger.toml"))?;
 
-    process_badges(engine, config.badges, config.globals);
+    process_badges(&mut engine, &config.badges, &config.globals)?;
 
     Ok(())
 }
@@ -51,7 +57,7 @@ struct Entry {
 impl TryFrom<SteelVal> for Entry {
     type Error = SteelErr;
 
-    fn try_from(val: SteelVal) -> Result<Self, Self::Error> {
+    fn try_from(val: SteelVal) -> std::result::Result<Self, Self::Error> {
         let items: Vec<SteelVal> = match val {
             SteelVal::ListV(list) => list.into_iter().collect(),
             _ => {
@@ -69,22 +75,30 @@ impl TryFrom<SteelVal> for Entry {
         })
     }
 }
-fn process_badges(mut engine: Engine, badges: Vec<Badge>, universal_options: Globals) {
+
+#[instrument(skip_all, fields(badge_count = badges.len()))]
+fn process_badges(
+    engine: &mut Engine,
+    badges: &[Badge],
+    globals: &Globals,
+) -> Result<(), ArmourError> {
     for badge in badges {
-        let entry: Entry = engine
-            .call_function_by_name_with_args(badge.producer.entry_point(), vec![])
-            .unwrap()
-            .try_into()
-            .unwrap();
+        let raw_entry: SteelVal =
+            engine.call_function_by_name_with_args(badge.producer.entry_point(), vec![])?;
+
+        let entry: Entry = raw_entry.try_into().map_err(ArmourError::Steel)?;
+
+        info!(label = %entry.key, status = %entry.value, "generating badge");
 
         badgen(BadgerOptions {
-            primary_color: Some(badge.primary_color),
-            secondary_color: Some(badge.secondary_color),
+            primary_color: Some(badge.primary_color.clone()),
+            secondary_color: Some(badge.secondary_color.clone()),
             label: Some(entry.key),
             status: entry.value,
             icon: None,
-            scale: Some(universal_options.scale as f64),
-        })
-        .unwrap();
+            scale: Some(globals.scale as f64),
+        })?;
     }
+
+    Ok(())
 }
