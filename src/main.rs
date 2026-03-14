@@ -62,7 +62,7 @@ fn process_badges(
 
         let entry: Entry = raw_entry.try_into().map_err(ArmourError::Steel)?;
 
-        info!(id = %badge.id, label = %entry.key, status = %entry.value, "generating badge");
+        info!(id = %badge.id.clone().unwrap_or("NONE".to_string()), label = %entry.key, status = %entry.value, "generating badge");
 
         let svg_doc = badgen(BadgerOptions {
             primary_color: Some(badge.primary_color.clone()),
@@ -73,7 +73,13 @@ fn process_badges(
             scale: Some(globals.scale as f64),
         })?;
 
-        let filename = format!("{}.svg", badge.id);
+        let filename = format!(
+            "{}.svg",
+            badge
+                .id
+                .clone()
+                .unwrap_or(badge.producer.entry_point().to_string())
+        );
         let svg_path = badges_dir.join(&filename);
         fs::write(&svg_path, svg_doc.to_string())?;
 

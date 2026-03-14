@@ -1,5 +1,6 @@
 [globals]
 scale = 2
+targets = "README.md"
 
 [[badge]]
 primary_color = "blue"
@@ -8,5 +9,3 @@ producer = {
   name = "get-edition",
   cratee = "gitoxide"
 }
-
-

@@ -17,7 +17,7 @@ pub(crate) struct Globals {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Badge {
-    pub(crate) id: String,
+    pub(crate) id: Option<String>,
     pub(crate) primary_color: String,
     pub(crate) secondary_color: String,
     pub(crate) producer: Producer,
