@@ -294,6 +294,7 @@ fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
 
     quote! {
         #[derive(Debug, serde::Deserialize, Clone, PartialEq, Eq, Hash)]
+        #[serde(tag = "name", rename_all = "kebab-case")]
         pub enum Producer {
             #(#variants,)*
         }
