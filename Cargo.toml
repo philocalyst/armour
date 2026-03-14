@@ -12,6 +12,7 @@ harfrust = "0.1.1"
 kurbo = "0.11.3"
 phf = { version = "0.11.3", features = ["macros"] }
 rand = "0.9.1"
+voronator = "0.2.1"
 rhai = "1.22.2"
 svg = "0.18.0"
 ttf-parser = "0.25.1"
