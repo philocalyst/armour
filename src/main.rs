@@ -15,10 +15,6 @@ mod rhai;
 mod svg;
 mod toml;
 
-fn file_to_string(path: String) -> Result<String, String> {
-    std::fs::read_to_string(path).map_err(|e| e.to_string())
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let mut steel_engine = Engine::new();
     steel_engine.with_contracts(true);
@@ -26,17 +22,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     steel_engine.register_steel_module("core".to_string(), include_str!("./core.scm").to_string());
 
     steel_engine.register_fn("parse-toml", parse_toml);
-    steel_engine.register_fn("file->string", file_to_string);
 
-    let answer = steel_engine.run(
-        "(hash-try-get (hash-try-get (parse-toml (file->string (car (read-dir \".\")))) \"package\") \"edition\")",
-    );
+    steel_engine
+        .run(include_str!(concat!(env!("OUT_DIR"), "/plugin.scm")))
+        .unwrap();
 
-    let result = steel_engine
-        .call_function_by_name_with_args("(read-dir", vec![SteelVal::StringV(".".into())]);
+    let answer = steel_engine.call_function_by_name_with_args("get-edition", vec![]);
+
+    dbg!(&answer);
 
     let badge = badgen(BadgerOptions {
-        status: String::from(String::from(answer.unwrap()[0].to_string())),
+        status: String::from(String::from(answer.unwrap().to_string())),
         label: Some("EDITION".to_string()),
         ..BadgerOptions::default()
     })?;
