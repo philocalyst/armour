@@ -6,14 +6,7 @@ primary_color = "blue"
 secondary_color = "purple"
 producer = {
   name = "get-edition",
-  crate = "gitoxide"
+  cratee = "gitoxide"
 }
 
-[[badge]]
-primary_color = "blue"
-secondary_color = "purple"
-producer = {
-  name = "basic",
-  label = "testing",
-  status = "123",
-}
+
