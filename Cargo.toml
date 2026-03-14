@@ -21,6 +21,7 @@ toml = "1.0.6"
 serde = { version = "1.0.228", features = ["derive"] }
 
 [build-dependencies]
+chumsky = "1.0.0-alpha.8"
 steel-core = { git = "https://github.com/mattwparas/steel.git", branch = "master" }
 syn = { version = "2", features = ["full"] }
 quote = "1"

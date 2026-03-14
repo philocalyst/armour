@@ -1,3 +1,4 @@
+use chumsky::prelude::*;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use std::fs;
@@ -10,6 +11,60 @@ fn extract_quoted_string(input: &str) -> &str {
     let start = input.find('"').unwrap() + 1;
     let end = input[start..].rfind('"').unwrap() + start;
     &input[start..end]
+}
+
+include!("./src/documentation.rs");
+
+fn parser<'a>() -> impl Parser<'a, &'a str, Item, extra::Err<Rich<'a, char>>> {
+    // An identifier: ASCII alphanumeric or underscore
+    let ident = text::ascii::ident().map(|s: &str| s.to_string());
+
+    // Optional type annotation in {braces}
+    let ty = ident.delimited_by(just('{'), just('}')).padded().or_not();
+
+    // Description: everything to end of line
+    let desc = any()
+        .filter(|c: &char| *c != '\n')
+        .repeated()
+        .collect::<String>()
+        .map(|s| s.trim().to_string());
+
+    let param = just("@param")
+        .padded()
+        .ignore_then(ident) // param name
+        .then(ty) // optional {Type}
+        .then(desc) // rest of line as description
+        .map(|((name, param_type), description)| Param {
+            name,
+            param_type: param_type.map(|n| TypeExpr::Named(n)),
+            description: Some(description),
+            modifiers: vec![],
+        });
+
+    Item {
+        name: "hi",
+        doc: DocComment {
+            summary: (),
+            description: (),
+            kind: (),
+            name: (),
+            location: (),
+            params: (),
+            returns: (),
+            errors: (),
+            raises: (),
+            fields: (),
+            see: (),
+            usage: (),
+            is_local: (),
+            within: (),
+            section: (),
+            annotations: (),
+            module_tags: (),
+        },
+        kind: ItemKind::Function,
+        location: None,
+    }
 }
 
 include!("./src/wrappers/toml.rs");
