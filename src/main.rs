@@ -8,6 +8,7 @@ use tracing::{info, instrument, warn};
 use crate::badger::Badge;
 use crate::badger::Globals;
 use crate::error::ArmourError;
+use crate::steel_engine::setup;
 use crate::svg::{BadgerOptions, badgen};
 use crate::wrappers::toml::parse_toml;
 
@@ -15,6 +16,7 @@ mod badger;
 mod colors;
 mod documentation;
 mod error;
+mod steel_engine;
 mod svg;
 mod wrappers;
 
@@ -29,16 +31,7 @@ fn main() -> Result<(), ArmourError> {
         .init();
 
     info!("starting armour badge generator");
-
-    let mut engine = Engine::new();
-    engine.with_contracts(true);
-
-    let core = include_str!("./core.scm");
-    let plugins = include_str!(concat!(env!("OUT_DIR"), "/all-plugins.scm"));
-
-    engine.register_steel_module("core".to_string(), core.to_string());
-    engine.register_fn("parse-toml", parse_toml);
-    engine.run(plugins)?;
+    let mut engine = steel_engine::setup()?;
 
     let config: badger::Config = toml::from_str(include_str!("../badger.toml"))?;
 
