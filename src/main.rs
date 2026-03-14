@@ -2,11 +2,7 @@ use std::error::Error;
 use std::fs::write;
 use std::path::PathBuf;
 
-use steel::SteelErr;
-use steel::SteelVal;
 use steel::compiler::passes::analysis::query_top_level_define;
-use steel::parser::ast::ExprKind;
-use steel::rerrs::ErrorKind;
 use steel::steel_vm::engine::Engine;
 use steel::steel_vm::register_fn::RegisterFn;
 use svg::BadgerOptions;
