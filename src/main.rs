@@ -11,11 +11,11 @@ mod svg;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut steel_engine = Engine::new();
-    let answer = steel_engine.run(
-        "(+ 1 2 3 4)
-         (+ 5 6 7 8)",
-    );
-    assert_eq!(answer, Ok(vec![SteelVal::IntV(10), SteelVal::IntV(26)]));
+    steel_engine.with_contracts(true);
+
+    steel_engine.register_steel_module("core".to_string(), include_str!("./core.scm").to_string());
+
+    let answer = steel_engine.run("(require \"core\")(my-fun 1 2 3)");
 
     let badge = badgen(BadgerOptions {
         status: String::from("SYN"),
