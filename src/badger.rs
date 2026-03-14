@@ -12,7 +12,7 @@ pub(crate) struct Config {
 
 #[derive(Debug, Deserialize, Default)]
 pub(crate) struct Globals {
-    scale: u32,
+    pub(crate) scale: u32,
 }
 
 #[derive(Debug, Deserialize)]
