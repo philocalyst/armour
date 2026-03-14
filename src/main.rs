@@ -41,6 +41,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         ..BadgerOptions::default()
     })?;
 
+    let test: Producer = "get-edition".try_into().unwrap();
+
     write("test.svg", badge.to_string())?;
 
     Ok(())

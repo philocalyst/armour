@@ -224,57 +224,88 @@ fn to_variant_name(entry_point: &str) -> String {
 }
 
 fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
-    let variants: Vec<Ident> = plugins
+    struct VariantInfo<'a> {
+        name: Ident,
+        fields: Option<proc_macro2::TokenStream>,
+        defaults: Option<proc_macro2::TokenStream>,
+        patterns: Option<proc_macro2::TokenStream>,
+        entry_point: &'a str,
+    }
+
+    let infos: Vec<VariantInfo> = plugins
         .iter()
-        .map(|p| Ident::new(&to_variant_name(&p.entry_point), Span::call_site()))
+        .map(|item| {
+            let name = Ident::new(&to_variant_name(&item.entry_point), Span::call_site());
+
+            let (fields, defaults, patterns) = match item
+                .doc
+                .as_ref()
+                .map(|doc| &doc.doc.params)
+                .filter(|p| !p.is_empty())
+            {
+                None => (None, None, None),
+                Some(params) => {
+                    let fnames: Vec<Ident> = params
+                        .iter()
+                        .map(|p| Ident::new_raw(&p.name, Span::call_site()))
+                        .collect();
+
+                    let ftypes: Vec<proc_macro2::TokenStream> = params
+                        .iter()
+                        .map(|p| match &p.param_type {
+                            Some(TypeExpr::Named(n)) => {
+                                let ident = Ident::new(n, Span::call_site());
+                                quote! { #ident }
+                            }
+                            _ => quote! { String },
+                        })
+                        .collect();
+
+                    (
+                        Some(quote! { { #(#fnames: #ftypes),* } }),
+                        Some(quote! { { #(#fnames: Default::default()),* } }),
+                        Some(quote! { { .. } }),
+                    )
+                }
+            };
+
+            VariantInfo {
+                name,
+                fields,
+                defaults,
+                patterns,
+                entry_point: item.entry_point.as_str(),
+            }
+        })
         .collect();
 
-    let entry_points: Vec<&str> = plugins.iter().map(|p| p.entry_point.as_str()).collect();
-
-    let entry_point_arms = variants
-        .iter()
-        .zip(entry_points.iter())
-        .map(|(v, ep)| quote! { Producer::#v => #ep, });
-
-    let doc_arms = variants
-        .iter()
-        .zip(plugins.iter())
-        .map(|(v, p)| match &p.doc {
-            Some(item) => {
-                let doc = item.doc.summary.as_str();
-                quote! { Producer::#v => Some(#doc), }
-            }
-            None => quote! { Producer::#v => None, },
-        });
-
-    let try_from_arms = variants
-        .iter()
-        .zip(entry_points.iter())
-        .map(|(v, ep)| quote! { #ep => Ok(Producer::#v), });
+    let variants = infos.iter().map(|i| {
+        let (n, f) = (&i.name, &i.fields);
+        quote! { #n #f }
+    });
+    let entry_point_arms = infos.iter().map(|i| {
+        let (n, p, ep) = (&i.name, &i.patterns, i.entry_point);
+        quote! { Producer::#n #p => #ep, }
+    });
+    let try_from_arms = infos.iter().map(|i| {
+        let (n, d, ep) = (&i.name, &i.defaults, i.entry_point);
+        quote! { #ep => Ok(Producer::#n #d), }
+    });
 
     quote! {
-        #[derive(Debug, serde::Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(Debug, serde::Deserialize, Clone, PartialEq, Eq, Hash)]
         pub enum Producer {
-            #( #variants,)*
+            #(#variants,)*
         }
-
         impl Producer {
             pub fn entry_point(&self) -> &'static str {
                 match self {
                     #(#entry_point_arms)*
                 }
             }
-
-            pub fn doc(&self) -> Option<&'static str> {
-                match self {
-                    #(#doc_arms)*
-                }
-            }
         }
-
         impl TryFrom<&str> for Producer {
             type Error = String;
-
             fn try_from(s: &str) -> Result<Self, Self::Error> {
                 match s {
                     #(#try_from_arms)*
