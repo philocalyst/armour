@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ArmourError {
+pub enum BadgerError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -21,4 +21,4 @@ pub enum ArmourError {
     Config(String),
 }
 
-pub type ArmourResult<T> = std::result::Result<T, ArmourError>;
+pub type BadgerResult<T> = std::result::Result<T, BadgerError>;

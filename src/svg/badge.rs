@@ -6,7 +6,7 @@ use rand::Rng;
 use tracing::{debug, instrument};
 
 use crate::colors::COLORS;
-use crate::error::{ArmourError, ArmourResult};
+use crate::error::{BadgerError, BadgerResult};
 
 use super::filters::{create_nnnoise_filter, create_speckle_filter, create_text_outline};
 use super::text::{FONT_SIZE, text_to_svg_paths};
@@ -27,9 +27,9 @@ fn create_accessible_text(label: &str, status: &str) -> String {
 }
 
 #[instrument(skip_all, fields(status = %options.status))]
-pub fn badgen(options: BadgerOptions) -> ArmourResult<Document> {
+pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
     if options.status.is_empty() {
-        return Err(ArmourError::Svg("<status> must be non-empty string".into()));
+        return Err(BadgerError::Svg("<status> must be non-empty string".into()));
     }
 
     let label = options.label;
@@ -44,7 +44,7 @@ pub fn badgen(options: BadgerOptions) -> ArmourResult<Document> {
     }
 
     // Safe: we just checked `is_none()` above and returned early
-    let label = label.ok_or_else(|| ArmourError::Svg("label unexpectedly None".into()))?;
+    let label = label.ok_or_else(|| BadgerError::Svg("label unexpectedly None".into()))?;
     let status = options.status;
 
     let color_presets = &COLORS;
@@ -185,13 +185,13 @@ pub fn badgen(options: BadgerOptions) -> ArmourResult<Document> {
 }
 
 #[instrument(skip_all, fields(status = %options.status))]
-pub fn bare(options: BadgerOptions) -> ArmourResult<Document> {
+pub fn bare(options: BadgerOptions) -> BadgerResult<Document> {
     let color_presets = &COLORS;
     let color = options
         .primary_color
         .as_ref()
         .and_then(|c| color_presets.get(c.as_str()))
-        .ok_or_else(|| ArmourError::Config("no valid primary color for bare badge".into()))?;
+        .ok_or_else(|| BadgerError::Config("no valid primary color for bare badge".into()))?;
 
     let scale = options.scale.unwrap_or(1.0);
     let st_rect_width = 1.0 + 115.0;

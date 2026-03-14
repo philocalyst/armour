@@ -3,7 +3,7 @@ use kurbo::{BezPath, PathEl, Point};
 use svg::node::element::{Group, Path as SvgPath};
 use ttf_parser::{Face, GlyphId, OutlineBuilder as TtfOutlineBuilder};
 
-use crate::error::{ArmourError, ArmourResult};
+use crate::error::{BadgerError, BadgerResult};
 
 pub const FONT_SIZE: f32 = 20.0;
 
@@ -89,13 +89,13 @@ pub fn text_to_svg_paths(
     y: f32,
     size: f32,
     fill_color: &str,
-) -> ArmourResult<(Group, f32)> {
+) -> BadgerResult<(Group, f32)> {
     let font_data = include_bytes!(
         "/Users/philocalyst/Library/Fonts/HomeManager/truetype/Charis-BoldItalic.ttf"
     );
 
-    let face = Face::parse(font_data, 0).map_err(|e| ArmourError::FontParse(e.to_string()))?;
-    let font = FontRef::new(font_data).map_err(|e| ArmourError::FontParse(e.to_string()))?;
+    let face = Face::parse(font_data, 0).map_err(|e| BadgerError::FontParse(e.to_string()))?;
+    let font = FontRef::new(font_data).map_err(|e| BadgerError::FontParse(e.to_string()))?;
 
     let mut buffer = UnicodeBuffer::new();
     buffer.push_str(text);

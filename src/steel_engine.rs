@@ -1,8 +1,8 @@
 use steel::steel_vm::{engine::Engine, register_fn::RegisterFn};
 
-use crate::{error::ArmourError, wrappers::toml::parse_toml};
+use crate::{error::BadgerError, wrappers::toml::parse_toml};
 
-pub(crate) fn setup() -> Result<Engine, ArmourError> {
+pub(crate) fn setup() -> Result<Engine, BadgerError> {
     let mut engine = Engine::new();
     engine.with_contracts(true);
 

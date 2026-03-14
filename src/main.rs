@@ -5,7 +5,7 @@ use steel::steel_vm::engine::Engine;
 use tracing::{info, instrument, warn};
 
 use crate::badger::{Badge, Globals};
-use crate::error::ArmourError;
+use crate::error::BadgerError;
 use crate::svg::{BadgerOptions, badgen};
 
 use std::fs;
@@ -21,7 +21,7 @@ mod wrappers;
 
 include!(concat!(env!("OUT_DIR"), "/producers.rs"));
 
-fn main() -> Result<(), ArmourError> {
+fn main() -> Result<(), BadgerError> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -53,14 +53,14 @@ fn process_badges(
     badges: &[Badge],
     globals: &Globals,
     badges_dir: &Path,
-) -> Result<Vec<String>, ArmourError> {
+) -> Result<Vec<String>, BadgerError> {
     let mut img_tags = Vec::new();
 
     for badge in badges {
         let raw_entry: SteelVal =
             engine.call_function_by_name_with_args(badge.producer.entry_point(), vec![])?;
 
-        let entry: Entry = raw_entry.try_into().map_err(ArmourError::Steel)?;
+        let entry: Entry = raw_entry.try_into().map_err(BadgerError::Steel)?;
 
         info!(id = %badge.id.clone().unwrap_or("NONE".to_string()), label = %entry.key, status = %entry.value, "generating badge");
 
