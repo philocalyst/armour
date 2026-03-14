@@ -2,7 +2,8 @@
 
 ;;@doc
 ;; Get the ID of the closed document
-(define (get-edition)
+;; @param crate If it's a workspace, define the crate to search against
+(define (get-edition crate)
   (let* ([content (file->string (car (read-dir ".")))]
          [toml    (parse-toml content)]
          [pkg     (hash-ref toml "package")]
