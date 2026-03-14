@@ -6,6 +6,12 @@ use steel::compiler::passes::analysis::query_top_level_define;
 use steel::steel_vm::engine::Engine;
 use toml;
 
+fn extract_quoted_string(input: &str) -> &str {
+    let start = input.find('"').unwrap() + 1;
+    let end = input[start..].rfind('"').unwrap() + start;
+    &input[start..end]
+}
+
 include!("./src/wrappers/toml.rs");
 fn main() {
     let scripts_dir = "src/plugins";
@@ -50,7 +56,7 @@ fn main() {
         .into_iter()
         .map(|stem| {
             let doc = query_top_level_define(&ast, &format!("{}__doc__", stem))
-                .and_then(|node| Some(node.to_string()));
+                .and_then(|node| Some(extract_quoted_string(&node.to_string()).to_string()));
 
             PluginInfo {
                 entry_point: stem,
@@ -91,6 +97,15 @@ fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
         .collect();
 
     let entry_points: Vec<&str> = plugins.iter().map(|p| p.entry_point.as_str()).collect();
+
+    fs::write(
+        "out",
+        plugins
+            .iter()
+            .map(|each| each.doc.clone().unwrap_or_default())
+            .collect::<Vec<String>>()
+            .join("\n"),
+    );
 
     let doc_attrs: Vec<TokenStream> = plugins
         .iter()
