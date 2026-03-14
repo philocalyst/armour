@@ -908,6 +908,7 @@ dependencies = [
  "quote",
  "rand 0.9.1",
  "rhai",
+ "serde",
  "steel-core",
  "svg",
  "syn 2.0.102",

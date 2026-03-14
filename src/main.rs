@@ -6,12 +6,13 @@ use steel::steel_vm::register_fn::RegisterFn;
 use svg::BadgerOptions;
 use svg::badgen;
 
-use crate::toml::parse_toml;
+use crate::wrappers::toml::parse_toml;
 
+mod badger;
 mod colors;
 mod rhai;
 mod svg;
-mod toml;
+mod wrappers;
 
 include!(concat!(env!("OUT_DIR"), "/producers.rs"));
 
@@ -29,6 +30,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     engine.run(plugins)?;
 
     let answer = engine.call_function_by_name_with_args("get-edition", vec![])?;
+
+    let config: badger::Config = toml::from_str(include_str!("../badger.toml"))?;
 
     let badge = badgen(BadgerOptions {
         status: answer.to_string(),

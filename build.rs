@@ -6,7 +6,7 @@ use steel::compiler::passes::analysis::query_top_level_define;
 use steel::steel_vm::engine::Engine;
 use toml;
 
-include!("./src/toml.rs");
+include!("./src/wrappers/toml.rs");
 fn main() {
     let scripts_dir = "src/plugins";
     println!("cargo:rerun-if-changed={}", scripts_dir);
@@ -119,7 +119,7 @@ fn generate_enum(plugins: &[PluginInfo]) -> TokenStream {
         .map(|(v, ep)| quote! { #ep => Ok(Producer::#v), });
 
     quote! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(Debug, serde::Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
         pub enum Producer {
             #(#doc_attrs #variants,)*
         }
