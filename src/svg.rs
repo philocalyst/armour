@@ -26,23 +26,13 @@ use ttf_parser::OutlineBuilder as TtfOutlineBuilder;
 const FONT_SIZE: f32 = 20.0;
 
 #[derive(Clone, Default)]
-pub struct Status {
-    name: String,
-    color: String,
-}
-
-#[derive(Clone, Default)]
-pub struct Label {
-    name: String,
-    color: String,
-}
-
-#[derive(Clone, Default)]
 pub struct BadgerOptions {
-    pub status: Status,       // The "right side" of the k/v THIS IS NEEDED!!
-    pub label: Option<Label>, // The "left side" of the k/v, describing the status
-    pub icon: Option<String>, // A name of a supported icon
-    pub scale: Option<f64>,   // The scale of the entire badge
+    pub primary_color: Option<String>,
+    pub secondary_color: Option<String>,
+    pub label: Option<String>,
+    pub status: String,
+    pub icon: Option<String>,
+    pub scale: Option<f64>,
 }
 
 // Struct to implement ttf_parser's OutlineBuilder, building a kurbo path
@@ -474,7 +464,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     if label.is_none() {
         return bare(BadgerOptions {
             status: options.status,
-            label_color: options.label_color,
+            primary_color: options.primary_color,
             scale: options.scale,
             ..Default::default()
         });
@@ -486,7 +476,7 @@ pub fn badgen(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let color_presets = &COLORS;
 
     let status_background_color = options
-        .status_color // Fixed: was label_color
+        .secondary_color
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap_or(&"#60AB92"); // Fallback color is blue (corrected from your code)
 
@@ -674,7 +664,7 @@ fn create_nnnoise_filter(id: &str) -> Filter {
 pub fn bare(options: BadgerOptions) -> Result<Document, Box<dyn Error>> {
     let color_presets = &COLORS;
     let color = options
-        .label_color
+        .primary_color
         .as_ref()
         .and_then(|c| color_presets.get(c.as_str()))
         .unwrap();
