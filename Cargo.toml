@@ -20,4 +20,9 @@ unicode-segmentation = "1.12.0"
 toml = "1.0.6"
 
 [build-dependencies]
-steel-core = { git="https://github.com/mattwparas/steel.git", branch = "master" }
+steel-core = { git = "https://github.com/mattwparas/steel.git", branch = "master" }
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"
+toml = "1.0.6"
+
