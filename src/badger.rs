@@ -5,19 +5,19 @@ use crate::Producer;
 #[derive(Debug, Deserialize)]
 pub(crate) struct Config {
     #[serde(default)]
-    globals: Globals,
+    pub(crate) globals: Globals,
     #[serde(rename = "badge")]
-    badges: Vec<Badge>,
+    pub(crate) badges: Vec<Badge>,
 }
 
 #[derive(Debug, Deserialize, Default)]
-struct Globals {
+pub(crate) struct Globals {
     scale: u32,
 }
 
 #[derive(Debug, Deserialize)]
-struct Badge {
-    primary_color: String,
-    secondary_color: String,
-    producer: Producer,
+pub(crate) struct Badge {
+    pub(crate) primary_color: String,
+    pub(crate) secondary_color: String,
+    pub(crate) producer: Producer,
 }

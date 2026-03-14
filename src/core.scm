@@ -6,3 +6,7 @@
 (provide file->string)
 (define (file->string path)
   (let ([file (open-input-file path)]) (read-port-to-string file)))
+
+(provide make-entry)
+(define (make-entry key value . icon)
+  (list key value (if (null? icon) #f (car icon))))
