@@ -20,31 +20,27 @@ mod svg;
 mod toml;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut steel_engine = Engine::new();
-    steel_engine.with_contracts(true);
+    let mut engine = Engine::new();
+    engine.with_contracts(true);
 
-    let core = include_str!("./core.scm").to_string();
+    let core = include_str!("./core.scm");
     let plugins = include_str!(concat!(env!("OUT_DIR"), "/all-plugins.scm"));
+    let plugins_path = PathBuf::from(concat!(env!("OUT_DIR"), "/all-plugins.scm"));
 
-    let ast = Engine::emit_ast(&core);
+    // Now core is in the module system, so (require "core") resolves
+    engine.register_steel_module("core".to_string(), core.to_string());
 
-    let mut expanded_ast: Vec<ExprKind> = steel_engine.emit_expanded_ast_without_optimizations(
-        &core,
-        Some(PathBuf::from("/Users/philocalyst/proj/armour/src/core.scm")),
-    )?;
+    engine.register_fn("parse-toml", parse_toml);
+    engine.run(plugins)?;
 
-    let define = query_top_level_define(&expanded_ast, "my-fun__doc__");
+    // This expands core AND loads it into the module system as a side effect
+    let core_ast = engine.emit_expanded_ast_without_optimizations(plugins, Some(plugins_path))?;
 
-    steel_engine.register_steel_module("core".to_string(), core);
-
-    steel_engine.register_fn("parse-toml", parse_toml);
-
-    steel_engine.run(plugins).unwrap();
-
-    let answer = steel_engine.call_function_by_name_with_args("get-edition", vec![]);
+    let define = query_top_level_define(&core_ast, "get-edition__doc__");
+    let answer = engine.call_function_by_name_with_args("get-edition", vec![])?;
 
     let badge = badgen(BadgerOptions {
-        status: answer.unwrap().to_string(),
+        status: answer.to_string(),
         label: Some("EDITION".to_string()),
         ..BadgerOptions::default()
     })?;
