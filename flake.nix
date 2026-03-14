@@ -199,7 +199,6 @@
               pkgs.cargo-bundle
               pkgs.cuelsp
               pkgs.steel
-              pkgs.steel-language-server
               pkgs.b3sum
             ]
             ++ pkgs.lib.optional pkgs.stdenv.isLinux [
