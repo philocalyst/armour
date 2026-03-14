@@ -10,7 +10,7 @@ use crate::wrappers::toml::parse_toml;
 
 mod badger;
 mod colors;
-mod rhai;
+mod documentation;
 mod svg;
 mod wrappers;
 
