@@ -24,15 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     steel_engine.register_fn("parse-toml", parse_toml);
 
     steel_engine
-        .run(include_str!(concat!(env!("OUT_DIR"), "/plugin.scm")))
+        .run(include_str!(concat!(env!("OUT_DIR"), "/all-plugins.scm")))
         .unwrap();
 
     let answer = steel_engine.call_function_by_name_with_args("get-edition", vec![]);
 
-    dbg!(&answer);
-
     let badge = badgen(BadgerOptions {
-        status: String::from(String::from(answer.unwrap().to_string())),
+        status: answer.unwrap().to_string(),
         label: Some("EDITION".to_string()),
         ..BadgerOptions::default()
     })?;

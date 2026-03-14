@@ -17,6 +17,6 @@ fn main() {
         .collect::<Vec<_>>()
         .join("\n");
 
-    let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("plugin.scm");
+    let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("all-plugins.scm");
     fs::write(out_path, combined).unwrap();
 }

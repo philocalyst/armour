@@ -1,4 +1,8 @@
 (require "core")
 
 (define (get-edition)
-  (hash-try-get (hash-try-get (parse-toml (file->string (car (read-dir ".")))) "package") "edition"))
+  (let* ([content (file->string (car (read-dir ".")))]
+         [toml    (parse-toml content)]
+         [pkg     (hash-ref toml "package")]
+         [edition (hash-ref pkg "edition")])
+    edition))
