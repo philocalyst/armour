@@ -1,17 +1,13 @@
-use comrak::nodes::{AstNode, NodeValue};
-use comrak::{Arena, Options, format_commonmark, parse_document};
-
 use steel::SteelErr;
 use steel::SteelVal;
 use steel::rerrs::ErrorKind;
 use steel::steel_vm::engine::Engine;
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 
-use crate::badger::Globals;
+use crate::badger::{Badge, Globals};
 use crate::error::ArmourError;
 use crate::svg::{BadgerOptions, badgen};
 
-use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
@@ -41,142 +37,90 @@ fn main() -> Result<(), ArmourError> {
     let badges_dir = Path::new("badges");
     fs::create_dir_all(badges_dir)?;
 
-    let arena = Arena::new();
-    let mut options = Options::default();
-    options.extension.strikethrough = true;
-    options.render.r#unsafe = true;
-    options.render.escape = false;
+    let img_tags = process_badges(&mut engine, &config.badges, &config.globals, badges_dir)?;
 
-    let root = parse_document(&arena, include_str!("../README.md"), &options);
+    let markdown = fs::read_to_string("README.md")?;
+    let updated = replace_badge_placeholder(&markdown, &img_tags);
+    fs::write("README.md", updated)?;
 
-    replace_badger_tags(root, &mut engine, &config.globals, badges_dir)?;
-
-    let mut markdown = String::new();
-    format_commonmark(root, &options, &mut markdown).unwrap();
-
-    fs::write("out.md", markdown);
     Ok(())
 }
 
-fn parse_badger_attrs(html: &str) -> HashMap<String, String> {
-    let mut attrs = HashMap::new();
-    // Strip the tag name: find first space after "<badger"
-    let inner = match html.find("<badger") {
-        Some(start) => {
-            let rest = &html[start + "<badger".len()..];
-            // Take everything up to '>' or '/>'
-            let end = rest.find('>').unwrap_or(rest.len());
-            &rest[..end]
-        }
-        None => return attrs,
-    };
-
-    // Simple attribute parser for key="value" pairs
-    let mut chars = inner.chars().peekable();
-    loop {
-        // Skip whitespace
-        while chars.peek().is_some_and(|c| c.is_whitespace()) {
-            chars.next();
-        }
-        if chars.peek().is_none() {
-            break;
-        }
-        // Read key
-        let key: String = chars
-            .by_ref()
-            .take_while(|c| *c != '=' && !c.is_whitespace())
-            .collect();
-        if key.is_empty() {
-            break;
-        }
-        // Skip '='
-        while chars.peek().is_some_and(|c| *c == '=') {
-            chars.next();
-        }
-        // Skip opening quote
-        let quote = match chars.peek() {
-            Some('"') | Some('\'') => {
-                let q = *chars.peek().unwrap();
-                chars.next();
-                q
-            }
-            _ => continue,
-        };
-        // Read value until closing quote
-        let value: String = chars.by_ref().take_while(|c| *c != quote).collect();
-        attrs.insert(key, value);
-    }
-    attrs
-}
-
-fn replace_badger_tags<'a>(
-    node: &'a AstNode<'a>,
+/// For each badge, generate the SVG file and return the image tags in order.
+#[instrument(skip_all, fields(badge_count = badges.len()))]
+fn process_badges(
     engine: &mut Engine,
+    badges: &[Badge],
     globals: &Globals,
     badges_dir: &Path,
-) -> Result<(), ArmourError> {
-    for child in node.descendants() {
-        let mut ast = child.data.borrow_mut();
-        if let NodeValue::HtmlBlock(ref html) = ast.value.clone() {
-            let literal = &html.literal;
-            if literal.starts_with("<badger") {
-                let attrs = parse_badger_attrs(literal);
+) -> Result<Vec<String>, ArmourError> {
+    let mut img_tags = Vec::new();
 
-                let producer_name = match attrs.get("producer") {
-                    Some(name) => name.clone(),
-                    None => {
-                        warn!("skipping <badger> tag without producer attribute");
-                        continue;
-                    }
-                };
+    for badge in badges {
+        let raw_entry: SteelVal =
+            engine.call_function_by_name_with_args(badge.producer.entry_point(), vec![])?;
 
-                let producer: Producer = Producer::try_from(producer_name.as_str())
-                    .map_err(|e| ArmourError::Config(e))?;
+        let entry: Entry = raw_entry.try_into().map_err(ArmourError::Steel)?;
 
-                let raw_entry: SteelVal =
-                    engine.call_function_by_name_with_args(producer.entry_point(), vec![])?;
+        info!(id = %badge.id, label = %entry.key, status = %entry.value, "generating badge");
 
-                let entry: Entry = raw_entry.try_into().map_err(ArmourError::Steel)?;
+        let svg_doc = badgen(BadgerOptions {
+            primary_color: Some(badge.primary_color.clone()),
+            secondary_color: Some(badge.secondary_color.clone()),
+            label: Some(entry.key.clone()),
+            status: entry.value.clone(),
+            icon: None,
+            scale: Some(globals.scale as f64),
+        })?;
 
-                info!(label = %entry.key, status = %entry.value, "generating badge");
+        let filename = format!("{}.svg", badge.id);
+        let svg_path = badges_dir.join(&filename);
+        fs::write(&svg_path, svg_doc.to_string())?;
 
-                let primary_color = attrs
-                    .get("primary_color")
-                    .cloned()
-                    .unwrap_or_else(|| "blue".to_string());
-                let secondary_color = attrs
-                    .get("secondary_color")
-                    .cloned()
-                    .unwrap_or_else(|| "green".to_string());
+        info!(path = %svg_path.display(), "wrote badge SVG");
 
-                let svg_doc = badgen(BadgerOptions {
-                    primary_color: Some(primary_color),
-                    secondary_color: Some(secondary_color),
-                    label: Some(entry.key.clone()),
-                    status: entry.value.clone(),
-                    icon: None,
-                    scale: Some(globals.scale as f64),
-                })?;
-
-                let filename = format!("{}.svg", producer_name);
-                let svg_path = badges_dir.join(&filename);
-                fs::write(&svg_path, svg_doc.to_string())?;
-
-                info!(path = %svg_path.display(), "wrote badge SVG");
-
-                let img_markdown = format!(
-                    "![{}: {}](badges/{})\n",
-                    entry.key, entry.value, filename
-                );
-
-                ast.value = NodeValue::HtmlBlock(comrak::nodes::NodeHtmlBlock {
-                    block_type: 6,
-                    literal: img_markdown,
-                });
-            }
-        }
+        img_tags.push(format!(
+            "![{}: {}](badges/{})",
+            entry.key, entry.value, filename
+        ));
     }
-    Ok(())
+
+    Ok(img_tags)
+}
+
+/// Find the single `<div badges="true">...</div>` and replace its inner content
+/// with all generated badge image links, preserving the wrapper div so users can move it.
+fn replace_badge_placeholder(markdown: &str, img_tags: &[String]) -> String {
+    let open_tag = "<div badges=\"true\">";
+    let close_tag = "</div>";
+
+    let Some(open_start) = markdown.find(open_tag) else {
+        warn!("no <div data-badger> found in markdown");
+        return markdown.to_string();
+    };
+
+    let after_open = open_start + open_tag.len();
+
+    let Some(close_offset) = markdown[after_open..].find(close_tag) else {
+        warn!("found <div data-badger> but no closing </div>");
+        return markdown.to_string();
+    };
+
+    let close_start = after_open + close_offset;
+    let after_close = close_start + close_tag.len();
+
+    let inner = img_tags.join("\n");
+
+    info!("updated badge placeholder with {} badge(s)", img_tags.len());
+
+    format!(
+        "{}{}\n{}\n{}{}",
+        &markdown[..open_start],
+        open_tag,
+        inner,
+        close_tag,
+        &markdown[after_close..],
+    )
 }
 
 #[derive(Debug)]
