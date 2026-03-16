@@ -1,1 +1,0 @@
-- The multi-node model: Every stickers instance is meant to provide a different style. This instance is dedicated to replicating the badge motif that has been so popular, but we don't want it to end there. Circle badges next?
