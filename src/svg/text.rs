@@ -1,7 +1,8 @@
-use harfrust::{Direction, FontRef, UnicodeBuffer, script};
+use harfrust::{Direction, FontRef as HarfBufferFontRef, UnicodeBuffer, script};
 use kurbo::{BezPath, PathEl, Point};
 use svg::node::element::{Group, Path as SvgPath};
-use ttf_parser::{Face, GlyphId, OutlineBuilder as TtfOutlineBuilder};
+use skrifa::{FontRef as SkrifaFontRef, MetadataProvider, outline::OutlinePen, GlyphId};
+use skrifa::instance::{Size, LocationRef};
 
 use crate::error::{BadgerError, BadgerResult};
 
@@ -36,7 +37,7 @@ impl KurboOutlineBuilder {
     }
 }
 
-impl TtfOutlineBuilder for KurboOutlineBuilder {
+impl OutlinePen for KurboOutlineBuilder {
     fn move_to(&mut self, x: f32, y: f32) {
         self.path.move_to(self.scaled_point(x, y));
     }
@@ -45,15 +46,15 @@ impl TtfOutlineBuilder for KurboOutlineBuilder {
         self.path.line_to(self.scaled_point(x, y));
     }
 
-    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+    fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
         self.path
-            .quad_to(self.scaled_point(x1, y1), self.scaled_point(x, y));
+            .quad_to(self.scaled_point(cx0, cy0), self.scaled_point(x, y));
     }
 
-    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+    fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
         self.path.curve_to(
-            self.scaled_point(x1, y1),
-            self.scaled_point(x2, y2),
+            self.scaled_point(cx0, cy0),
+            self.scaled_point(cx1, cy1),
             self.scaled_point(x, y),
         );
     }
@@ -94,8 +95,8 @@ pub fn text_to_svg_paths(
         "/Users/philocalyst/Library/Fonts/HomeManager/truetype/Charis-BoldItalic.ttf"
     );
 
-    let face = Face::parse(font_data, 0).map_err(|e| BadgerError::FontParse(e.to_string()))?;
-    let font = FontRef::new(font_data).map_err(|e| BadgerError::FontParse(e.to_string()))?;
+    let face = SkrifaFontRef::new(font_data).map_err(|e| BadgerError::FontParse(e.to_string()))?;
+    let font = HarfBufferFontRef::new(font_data).map_err(|e| BadgerError::FontParse(e.to_string()))?;
 
     let mut buffer = UnicodeBuffer::new();
     buffer.push_str(text);
@@ -109,14 +110,14 @@ pub fn text_to_svg_paths(
     let glyph_infos = output.glyph_infos();
     let glyph_positions = output.glyph_positions();
 
-    let units_per_em = face.units_per_em() as f32;
+    let units_per_em = face.metrics(Size::unscaled(), LocationRef::default()).units_per_em as f32;
     let scale = size / units_per_em;
 
     let mut text_group = Group::new().set("fill", fill_color);
     let mut cursor_x = x;
 
     for (info, pos) in glyph_infos.iter().zip(glyph_positions.iter()) {
-        let glyph_id = GlyphId(info.glyph_id as u16);
+        let glyph_id = GlyphId::from(info.glyph_id as u16);
 
         let mut builder = KurboOutlineBuilder::new(
             scale,
@@ -124,15 +125,17 @@ pub fn text_to_svg_paths(
             y + pos.y_offset as f32 * scale,
         );
 
-        if face.outline_glyph(glyph_id, &mut builder).is_some() {
-            let path = builder.finish();
-            let path_data = bezpath_to_svg_d(&path);
+        if let Some(outline) = face.outline_glyphs().get(glyph_id) {
+            if outline.draw(Size::unscaled(), &mut builder).is_ok() {
+                let path = builder.finish();
+                let path_data = bezpath_to_svg_d(&path);
 
-            if !path_data.is_empty() {
-                let svg_path = SvgPath::new()
-                    .set("d", path_data)
-                    .set("filter", format!("url(#{})", "outlineBehindFilter"));
-                text_group = text_group.add(svg_path);
+                if !path_data.is_empty() {
+                    let svg_path = SvgPath::new()
+                        .set("d", path_data)
+                        .set("filter", format!("url(#{})", "outlineBehindFilter"));
+                    text_group = text_group.add(svg_path);
+                }
             }
         }
 

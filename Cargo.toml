@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ab_glyph = "0.2.29"
 css-style = "0.14.1"
 steel-core = { git="https://github.com/mattwparas/steel.git", branch = "master" }
 fontdb = "0.23.0"
@@ -12,7 +11,7 @@ phf = { version = "0.11.3", features = ["macros"] }
 rand = "0.9.1"
 voronator = "0.2.1"
 svg = "0.18.0"
-ttf-parser = "0.25.1"
+skrifa = "0.40.0"
 unicode-segmentation = "1.12.0"
 toml = "1.0.6"
 serde = { version = "1.0.228", features = ["derive"] }
