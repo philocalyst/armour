@@ -13,12 +13,12 @@ use super::text::{FONT_SIZE, text_to_svg_paths};
 use super::voronoi::create_speckle_group;
 
 #[derive(Clone, Default)]
-pub struct BadgerOptions {
-    pub primary_color: Option<String>,
-    pub secondary_color: Option<String>,
-    pub label: Option<String>,
-    pub status: String,
-    pub icon: Option<String>,
+pub struct BadgerOptions<'source> {
+    pub primary_color: Option<&'source str>,
+    pub secondary_color: Option<&'source str>,
+    pub label: Option<&'source str>,
+    pub status: &'source str,
+    pub icon: Option<&'source str>,
     pub scale: Option<f64>,
 }
 
@@ -51,12 +51,12 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
 
     let status_background_color = options
         .secondary_color
-        .and_then(|c| color_presets.get(c.as_str()))
+        .and_then(|c| color_presets.get(c))
         .unwrap_or(&"#60AB92");
 
     let label_background_color = options
         .primary_color
-        .and_then(|c| color_presets.get(c.as_str()))
+        .and_then(|c| color_presets.get(c))
         .unwrap_or(&"#150E5C");
 
     let icon_width = 30.0;

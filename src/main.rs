@@ -65,10 +65,10 @@ fn process_badges(
         info!(id = %badge.id.clone().unwrap_or("NONE".to_string()), label = %entry.key, status = %entry.value, "generating badge");
 
         let svg_doc = badgen(BadgerOptions {
-            primary_color: Some(badge.primary_color.clone()),
-            secondary_color: Some(badge.secondary_color.clone()),
-            label: Some(entry.key.clone()),
-            status: entry.value.clone(),
+            primary_color: Some(&badge.primary_color),
+            secondary_color: Some(&badge.secondary_color),
+            label: Some(entry.key.clone().trim_matches('"')),
+            status: entry.value.clone().trim_matches('"'),
             icon: None,
             scale: Some(globals.scale as f64),
         })?;
