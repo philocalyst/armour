@@ -5,7 +5,6 @@ use svg::node::Text as TextNode;
 use svg::node::element::{ClipPath, Definitions, Group, Image, Polygon, Rectangle, Title};
 use tracing::{debug, instrument};
 
-use crate::colors::COLORS;
 use crate::error::{BadgerError, BadgerResult};
 
 fn chamfered_polygon(x: f32, y: f32, w: f32, h: f32, chamfer: f32) -> Polygon {
@@ -79,17 +78,9 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
     let label = label.ok_or_else(|| BadgerError::Svg("label unexpectedly None".into()))?;
     let status = options.status;
 
-    let color_presets = &COLORS;
+    let status_background_color = options.secondary_color.unwrap_or(&"#60AB92");
 
-    let status_background_color = options
-        .secondary_color
-        .and_then(|c| color_presets.get(c))
-        .unwrap_or(&"#60AB92");
-
-    let label_background_color = options
-        .primary_color
-        .and_then(|c| color_presets.get(c))
-        .unwrap_or(&"#150E5C");
+    let label_background_color = options.primary_color.unwrap_or(&"#150E5C");
 
     let icon_width = 30.0;
     let _scale = options.scale.unwrap_or(1.0);
@@ -186,9 +177,9 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
             .set("width", status_width + spacer)
             .set("height", height),
     );
-    let clip_outer = ClipPath::new().set("id", "clipOuter").add(
-        chamfered_polygon(0.0, 0.0, total_width, height, chamfer),
-    );
+    let clip_outer = ClipPath::new()
+        .set("id", "clipOuter")
+        .add(chamfered_polygon(0.0, 0.0, total_width, height, chamfer));
 
     let defs = Definitions::new()
         .add(text_outline)
@@ -208,11 +199,10 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
     document = document.add(content);
     document = document.set("viewBox", format!("0 0 {total_width} {height}"));
 
-    let style = css_style::style()
-        .and_size(|conf| {
-            conf.height(em(height_normalized))
-                .width(em(total_width_normalized))
-        });
+    let style = css_style::style().and_size(|conf| {
+        conf.height(em(height_normalized))
+            .width(em(total_width_normalized))
+    });
 
     let style = format!(r#"svg {{{style}}}"#);
     document = document.add(svg::node::element::Style::new(style));
@@ -226,11 +216,8 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
 
 #[instrument(skip_all, fields(status = %options.status))]
 pub fn bare(options: BadgerOptions) -> BadgerResult<Document> {
-    let color_presets = &COLORS;
     let color = options
         .primary_color
-        .as_ref()
-        .and_then(|c| color_presets.get(c))
         .ok_or_else(|| BadgerError::Config("no valid primary color for bare badge".into()))?;
 
     let scale = options.scale.unwrap_or(1.0);
