@@ -1,12 +1,44 @@
 use css_style::unit::{em, px};
+use rand::Rng;
 use svg::Document;
 use svg::node::Text as TextNode;
-use svg::node::element::{ClipPath, Definitions, Image, Rectangle, Title};
-use rand::Rng;
+use svg::node::element::{ClipPath, Definitions, Group, Image, Polygon, Rectangle, Title};
 use tracing::{debug, instrument};
 
 use crate::colors::COLORS;
 use crate::error::{BadgerError, BadgerResult};
+
+fn chamfered_polygon(x: f32, y: f32, w: f32, h: f32, chamfer: f32) -> Polygon {
+    let facet = chamfer * 0.25;
+
+    let left = x;
+    let right = x + w;
+    let top = y;
+    let bottom = y + h;
+
+    let vertices: [(f32, f32); 12] = [
+        (left + chamfer, top),
+        (right - chamfer, top),
+        (right - facet, top + facet),
+        (right, top + chamfer),
+        (right, bottom - chamfer),
+        (right - facet, bottom - facet),
+        (right - chamfer, bottom),
+        (left + chamfer, bottom),
+        (left + facet, bottom - facet),
+        (left, bottom - chamfer),
+        (left, top + chamfer),
+        (left + facet, top + facet),
+    ];
+
+    let points: String = vertices
+        .iter()
+        .map(|(vx, vy)| format!("{vx},{vy}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    Polygon::new().set("points", points)
+}
 
 use super::filters::{create_nnnoise_filter, create_speckle_filter, create_text_outline};
 use super::text::{FONT_SIZE, text_to_svg_paths};
@@ -138,6 +170,8 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
     let noise = create_nnnoise_filter("nnoise");
     let speckle = create_speckle_filter("ssspot-filter", seed, height);
 
+    let chamfer = height * 0.15;
+
     let clip_label = ClipPath::new().set("id", "clipLabel").add(
         Rectangle::new()
             .set("x", 0)
@@ -152,27 +186,33 @@ pub fn badgen(options: BadgerOptions) -> BadgerResult<Document> {
             .set("width", status_width + spacer)
             .set("height", height),
     );
+    let clip_outer = ClipPath::new().set("id", "clipOuter").add(
+        chamfered_polygon(0.0, 0.0, total_width, height, chamfer),
+    );
 
     let defs = Definitions::new()
         .add(text_outline)
         .add(noise)
         .add(speckle)
         .add(clip_label)
-        .add(clip_status);
+        .add(clip_status)
+        .add(clip_outer);
 
     document = document.set("filter", format!("url(#{})", "nnoise"));
 
+    let mut content = Group::new().set("clip-path", "url(#clipOuter)");
+    content = content.add(label_bg).add(status_bg);
+    content = content.add(label_paths).add(status_paths);
+
     document = document.add(defs);
-    document = document.add(label_bg).add(status_bg);
+    document = document.add(content);
     document = document.set("viewBox", format!("0 0 {total_width} {height}"));
-    document = document.add(label_paths).add(status_paths);
 
     let style = css_style::style()
         .and_size(|conf| {
             conf.height(em(height_normalized))
                 .width(em(total_width_normalized))
-        })
-        .and_border(|conf| conf.radius(px(10)));
+        });
 
     let style = format!(r#"svg {{{style}}}"#);
     document = document.add(svg::node::element::Style::new(style));
@@ -190,7 +230,7 @@ pub fn bare(options: BadgerOptions) -> BadgerResult<Document> {
     let color = options
         .primary_color
         .as_ref()
-        .and_then(|c| color_presets.get(c.as_str()))
+        .and_then(|c| color_presets.get(c))
         .ok_or_else(|| BadgerError::Config("no valid primary color for bare badge".into()))?;
 
     let scale = options.scale.unwrap_or(1.0);
