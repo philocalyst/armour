@@ -12,7 +12,6 @@ use std::fs;
 use std::path::Path;
 
 mod badger;
-mod colors;
 mod documentation;
 mod error;
 mod steel_engine;

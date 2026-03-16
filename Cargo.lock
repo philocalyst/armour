@@ -151,6 +151,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "chumsky",
+ "color",
  "comrak",
  "css-style",
  "fontdb",
@@ -410,6 +411,12 @@ dependencies = [
  "termcolor",
  "unicode-width 0.1.14",
 ]
+
+[[package]]
+name = "color"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a18ef4657441fb193b65f34dc39b3781f0dfec23d3bd94d0eeb4e88cde421edb"
 
 [[package]]
 name = "colorchoice"
