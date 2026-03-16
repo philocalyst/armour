@@ -1,5 +1,5 @@
 use rand::Rng;
-use svg::node::element::{Circle, Group, Rectangle};
+use svg::node::element::{Group, Polygon, Rectangle};
 use voronator::VoronoiDiagram;
 use voronator::delaunator::Point as VoronoiPoint;
 
@@ -26,37 +26,8 @@ fn polygon_centroid(pts: &[VoronoiPoint]) -> (f64, f64) {
     (cx / area, cy / area)
 }
 
-fn dist_to_segment(p: (f64, f64), v: (f64, f64), w: (f64, f64)) -> f64 {
-    let l2 = (w.0 - v.0).powi(2) + (w.1 - v.1).powi(2);
-    if l2 < 1e-10 {
-        return ((p.0 - v.0).powi(2) + (p.1 - v.1).powi(2)).sqrt();
-    }
-    let t = ((p.0 - v.0) * (w.0 - v.0) + (p.1 - v.1) * (w.1 - v.1)) / l2;
-    let t = t.clamp(0.0, 1.0);
-    let proj = (v.0 + t * (w.0 - v.0), v.1 + t * (w.1 - v.1));
-    ((p.0 - proj.0).powi(2) + (p.1 - proj.1).powi(2)).sqrt()
-}
-
-fn inner_circle_radius(centroid: (f64, f64), polygon: &[VoronoiPoint]) -> f64 {
-    let n = polygon.len();
-    if n < 2 {
-        return 0.0;
-    }
-    let mut min_dist = f64::MAX;
-    for i in 0..n {
-        let v = (polygon[i].x, polygon[i].y);
-        let w = (polygon[(i + 1) % n].x, polygon[(i + 1) % n].y);
-        let d = dist_to_segment(centroid, v, w);
-        if d < min_dist {
-            min_dist = d;
-        }
-    }
-    min_dist
-}
-
 struct VoronoiCell {
-    centroid: (f64, f64),
-    inner_circle_radius: f64,
+    vertices: Vec<(f64, f64)>,
 }
 
 fn create_voronoi_tessellation(
@@ -102,17 +73,11 @@ fn create_voronoi_tessellation(
         .iter()
         .filter_map(|cell| {
             let pts = cell.points();
-            if pts.is_empty() {
-                return None;
-            }
-            let centroid = polygon_centroid(pts);
-            let icr = inner_circle_radius(centroid, pts);
-            if icr < 0.1 {
+            if pts.len() < 3 {
                 return None;
             }
             Some(VoronoiCell {
-                centroid,
-                inner_circle_radius: icr,
+                vertices: pts.iter().map(|p| (p.x, p.y)).collect(),
             })
         })
         .collect()
@@ -144,26 +109,30 @@ pub fn create_speckle_group(
             .set("height", section_height),
     );
 
-    let mut circle_group = Group::new()
-        .set("fill", "#ffffff")
+    let mut cell_group = Group::new()
         .set("filter", format!("url(#{filter_id})"))
         .set("clip-path", format!("url(#{clip_id})"));
 
     for cell in &cells {
-        let r_min = cell.inner_circle_radius / 2.0;
-        let r_max = cell.inner_circle_radius;
-        let r = rng.random_range(r_min..=r_max);
         let opacity = rng.random_range(0.05..=0.35);
 
-        circle_group = circle_group.add(
-            Circle::new()
-                .set("cx", cell.centroid.0 + x_offset as f64)
-                .set("cy", cell.centroid.1)
-                .set("r", r)
+        let points_str: String = cell
+            .vertices
+            .iter()
+            .map(|(x, y)| format!("{},{}", x + x_offset as f64, y))
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        cell_group = cell_group.add(
+            Polygon::new()
+                .set("points", points_str)
+                .set("fill", "#ffffff")
+                .set("stroke", "#ffffff")
+                .set("stroke-width", 0.3)
                 .set("opacity", format!("{opacity:.2}")),
         );
     }
 
-    bg = bg.add(circle_group);
+    bg = bg.add(cell_group);
     bg
 }
