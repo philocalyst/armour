@@ -8,4 +8,4 @@
          [toml    (parse-toml content)]
          [pkg     (hash-ref toml "package")]
          [edition (hash-ref pkg "edition")])
-    (make-entry "edition" edition)))
+    (make-entry "EDITION" edition)))
