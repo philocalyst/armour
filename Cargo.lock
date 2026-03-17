@@ -760,11 +760,10 @@ dependencies = [
 
 [[package]]
 name = "im-lists"
-version = "0.12.1"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8490eb8daae746b8d5ba6f95d7aec634cd05cf687723ce62e4e3c6886f2a8030"
+checksum = "82158d5d59eff663dbb9d89295eacac296f58bc0473331cea2f45d9d270c5540"
 dependencies = [
- "allocator-api2",
  "generic_singleton",
  "smallvec",
 ]
@@ -960,7 +959,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -1501,7 +1499,8 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "steel-core"
 version = "0.8.2"
-source = "git+https://github.com/mattwparas/steel.git?branch=master#6826565a54b57fde9e521072338d739fe8f18db5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4acadc255e0d56fe71c09c605ebde51e6009b02d86ae610386f26437c4f91f8"
 dependencies = [
  "arc-swap",
  "bigdecimal",
@@ -1553,7 +1552,8 @@ dependencies = [
 [[package]]
 name = "steel-derive"
 version = "0.8.2"
-source = "git+https://github.com/mattwparas/steel.git?branch=master#6826565a54b57fde9e521072338d739fe8f18db5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a564df3ca16e0be05e71bdcc3fe52f8b71e47be9c73e7a0bf43840fde591997"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1563,7 +1563,8 @@ dependencies = [
 [[package]]
 name = "steel-gen"
 version = "0.8.2"
-source = "git+https://github.com/mattwparas/steel.git?branch=master#6826565a54b57fde9e521072338d739fe8f18db5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1a614449ed6cba4138ce2e54943fb403533248da8070dad6ce943f1b14417b8"
 dependencies = [
  "codegen",
  "serde",
@@ -1572,7 +1573,8 @@ dependencies = [
 [[package]]
 name = "steel-parser"
 version = "0.8.2"
-source = "git+https://github.com/mattwparas/steel.git?branch=master#6826565a54b57fde9e521072338d739fe8f18db5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "769cea4a36ee603bfde799ab9c1ec1f93a67df30bcf4cd22d069eb8d4155e2b2"
 dependencies = [
  "compact_str",
  "dashmap",
@@ -1593,7 +1595,8 @@ dependencies = [
 [[package]]
 name = "steel-quickscope"
 version = "0.3.2"
-source = "git+https://github.com/mattwparas/steel.git?branch=master#6826565a54b57fde9e521072338d739fe8f18db5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3b5ab5dbc71b317360a2f5287abc1c91a92ced9a983066e2622a607583bc89e"
 dependencies = [
  "indexmap 2.13.0",
  "smallvec",
